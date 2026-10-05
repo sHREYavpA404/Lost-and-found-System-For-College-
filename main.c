@@ -156,6 +156,147 @@ void display_item_detailed(const ItemNode *item);
 void search_items_by_keyword(const ItemNode *head, const char *keyword);
 void filter_items_by_location(const ItemNode *head, const char *loc_query);
 void free_inventory(ItemNode **head_ref);
+/* Queue Operations (Claim Requests Waiting List) */
+void queue_init(ClaimQueue *q);
+int queue_enqueue(ClaimQueue *q, int req_id, int item_id, const Claimant *claimant,
+                  const char *notes, const char *req_date);
+int queue_dequeue(ClaimQueue *q, ClaimRequestNode *out_node);
+void queue_display(const ClaimQueue *q);
+ClaimRequestNode* queue_find_by_req_id(const ClaimQueue *q, int req_id);
+void queue_free(ClaimQueue *q);
+
+/* File I/O & 1-Year Retention Database Operations */
+void load_inventory_from_file(const char *filename);
+void save_inventory_to_file(const char *filename);
+void load_queue_from_file(const char *filename);
+void save_queue_to_file(const char *filename);
+void append_claim_to_history(const ItemNode *item, const Claimant *claimant,
+                             const char *action_notes, const char *filename);
+void display_claim_history_file(const char *filename);
+
+/* Sub-system Modules */
+void add_item(void);
+void process_claim_from_queue(void);
+void direct_claim_walkin(void);
+void student_submit_claim_request(void);
+void student_check_claim_status(void);
+
+/* User Interfaces */
+void admin_menu(void);
+void student_menu(void);
+void main_menu(void);
+void display_about_and_retention(void);
+
+/* ============================================================================
+ * IMPLEMENTATION: Utility & Input Helpers
+ * ============================================================================ */
+
+void get_current_date_str(char *dest, size_t max_size) {
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    if (t != NULL) {
+        strftime(dest, max_size, "%Y-%m-%d", t);
+    } else {
+        snprintf(dest, max_size, "2026-01-01");
+    }
+}
+
+void get_current_timestamp_str(char *dest, size_t max_size) {
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    if (t != NULL) {
+        strftime(dest, max_size, "%Y-%m-%d %H:%M:%S", t);
+    } else {
+        snprintf(dest, max_size, "2026-01-01 00:00:00");
+    }
+}
+
+void trim_whitespace(char *str) {
+    if (!str) return;
+    /* Trim trailing */
+    int len = (int)strlen(str);
+    while (len > 0 && (isspace((unsigned char)str[len - 1]) || str[len - 1] == '\r' || str[len - 1] == '\n')) {
+        str[--len] = '\0';
+    }
+    /* Trim leading */
+    int start = 0;
+    while (str[start] && isspace((unsigned char)str[start])) {
+        start++;
+    }
+    if (start > 0) {
+        memmove(str, str + start, len - start + 1);
+    }
+}
+
+int read_line(char *dest, size_t max_len) {
+    if (!dest || max_len == 0) return 0;
+    if (fgets(dest, (int)max_len, stdin) == NULL) {
+        dest[0] = '\0';
+        return 0;
+    }
+    trim_whitespace(dest);
+    return (int)strlen(dest);
+}
+
+int read_int_range(int min_val, int max_val) {
+    char buffer[128];
+    int val = 0;
+    while (1) {
+        printf("Enter selection (%d - %d): ", min_val, max_val);
+        if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+            continue;
+        }
+        trim_whitespace(buffer);
+        if (strlen(buffer) == 0) continue;
+
+        char *endptr;
+        val = (int)strtol(buffer, &endptr, 10);
+        if (endptr != buffer && *endptr == '\0' && val >= min_val && val <= max_val) {
+            return val;
+        }
+        printf("[!] Invalid input. Please enter a whole number between %d and %d.\n", min_val, max_val);
+    }
+}
+
+void read_masked_password(char *dest, size_t max_len) {
+    size_t idx = 0;
+    dest[0] = '\0';
+
+#ifdef _WIN32
+    if (!_isatty(_fileno(stdin))) {
+        if (fgets(dest, (int)max_len, stdin) != NULL) {
+            trim_whitespace(dest);
+        }
+        return;
+    }
+
+    int ch;
+    while (1) {
+        ch = _getch();
+        if (ch == '\r' || ch == '\n') {
+            break;
+        } else if (ch == '\b') { /* Backspace */
+            if (idx > 0) {
+                idx--;
+                printf("\b \b");
+            }
+        } else if (ch == 0 || ch == 224) { /* Extended keys */
+            _getch(); /* Ignore next code */
+        } else if (idx < max_len - 1 && isprint(ch)) {
+            dest[idx++] = (char)ch;
+            printf("*");
+        }
+    }
+    dest[idx] = '\0';
+    printf("\n");
+#else
+    if (!isatty(STDIN_FILENO)) {
+        if (fgets(dest, max_len, stdin) != NULL) {
+            trim_whitespace(dest);
+        }
+        return;
+    }
+
 
 
 
