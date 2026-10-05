@@ -145,5 +145,17 @@ int validate_college_email(const char *email, const char *required_domain);
 int validate_phone(const char *phone);
 int validate_usn(const char *usn);
 void prompt_location(char *dest, size_t max_len);
+/* Linked List Operations (Item Inventory) */
+ItemNode* create_item_node(int id, const char *name, const char *desc,
+                           const char *loc, const char *img, const char *date, ItemStatus st);
+void insert_item_sorted(ItemNode **head_ref, ItemNode *new_node);
+ItemNode* find_item_by_id(ItemNode *head, int id);
+int delete_item_by_id(ItemNode **head_ref, int id);
+void display_all_items(const ItemNode *head, int only_available);
+void display_item_detailed(const ItemNode *item);
+void search_items_by_keyword(const ItemNode *head, const char *keyword);
+void filter_items_by_location(const ItemNode *head, const char *loc_query);
+void free_inventory(ItemNode **head_ref);
+
 
 
