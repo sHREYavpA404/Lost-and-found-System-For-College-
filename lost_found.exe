@@ -1,1 +1,15 @@
+====================================================
+ Initializing College Lost & Found System...
+====================================================
+[+] Active inventory loaded successfully.
+[+] Pending claim queue loaded successfully.
 
+====================================================
+         COLLEGE LOST & FOUND MANAGEMENT SYSTEM
+====================================================
+ 1. Student Portal (Browse & Submit Claims)
+ 2. Admin Portal (Password Protected)
+ 3. View 1-Year Retention Policy & Architecture
+ 4. Exit Application
+====================================================
+Enter selection (1 - 4):
