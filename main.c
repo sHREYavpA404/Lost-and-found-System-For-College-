@@ -296,7 +296,317 @@ void read_masked_password(char *dest, size_t max_len) {
         }
         return;
     }
+ struct termios oldt, newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
 
+    if (fgets(dest, max_len, stdin) != NULL) {
+        trim_whitespace(dest);
+    }
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    printf("\n");
+#endif
+}
+
+void clear_screen(void) {
+#ifdef _WIN32
+    if (_isatty(_fileno(stdout))) system("cls");
+#else
+    if (isatty(STDOUT_FILENO)) system("clear");
+#endif
+}
+
+void pause_console(void) {
+#ifdef _WIN32
+    if (!_isatty(_fileno(stdin))) return;
+#else
+    if (!isatty(STDIN_FILENO)) return;
+#endif
+    printf("\nPress Enter to continue...");
+    char ch;
+    while ((ch = (char)getchar()) != '\n' && ch != EOF);
+}
+
+/* ============================================================================
+ * IMPLEMENTATION: Validation Helpers
+ * ============================================================================ */
+
+/**
+ * Validates whether an email address is properly formatted and ends with
+ * the required college domain (e.g., @college.edu).
+ */
+int validate_college_email(const char *email, const char *required_domain) {
+    if (!email || !required_domain) return 0;
+    size_t email_len = strlen(email);
+    size_t domain_len = strlen(required_domain);
+
+    if (email_len <= domain_len) return 0;
+
+    /* Must not start with a dot or special char */
+    if (!isalnum((unsigned char)email[0])) return 0;
+
+    /* Find the '@' symbol */
+    const char *at_pos = strchr(email, '@');
+    if (!at_pos || at_pos == email) return 0;
+
+    /* Ensure only one '@' symbol */
+    if (strchr(at_pos + 1, '@') != NULL) return 0;
+
+    /* Verify local part before '@' has valid characters */
+    for (const char *p = email; p < at_pos; p++) {
+        if (!isalnum((unsigned char)*p) && *p != '.' && *p != '_' && *p != '-') {
+            return 0;
+        }
+    }
+
+    /* Check if the suffix ends with required_domain (case-insensitive) */
+    const char *suffix = email + (email_len - domain_len);
+    for (size_t i = 0; i < domain_len; i++) {
+        if (tolower((unsigned char)suffix[i]) != tolower((unsigned char)required_domain[i])) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+int validate_phone(const char *phone) {
+    if (!phone) return 0;
+    size_t len = strlen(phone);
+    if (len < 10 || len > 15) return 0;
+
+    size_t start = 0;
+    if (phone[0] == '+') start = 1;
+
+    int digit_count = 0;
+    for (size_t i = start; i < len; i++) {
+        if (isdigit((unsigned char)phone[i])) {
+            digit_count++;
+        } else if (phone[i] != '-' && phone[i] != ' ') {
+            return 0;
+        }
+    }
+    return (digit_count >= 10);
+}
+
+int validate_usn(const char *usn) {
+    if (!usn) return 0;
+    size_t len = strlen(usn);
+    if (len < 5 || len > 20) return 0;
+
+    for (size_t i = 0; i < len; i++) {
+        if (!isalnum((unsigned char)usn[i])) return 0;
+    }
+    return 1;
+}
+
+/**
+ * Prompt location with sub-menu for Blocks A-E (with room number) or landmarks.
+ */
+void prompt_location(char *dest, size_t max_len) {
+    printf("\n----------------------------------------------------\n");
+    printf(" SELECT LOCATION WHERE ITEM WAS FOUND:\n");
+    printf("----------------------------------------------------\n");
+    printf(" 1. Block A (Prompts for Room Number)\n");
+    printf(" 2. Block B (Prompts for Room Number)\n");
+    printf(" 3. Block C (Prompts for Room Number)\n");
+    printf(" 4. Block D (Prompts for Room Number)\n");
+    printf(" 5. Block E (Prompts for Room Number)\n");
+    printf(" 6. Basketball Court\n");
+    printf(" 7. Near Temple\n");
+    printf(" 8. Entrance\n");
+    printf("----------------------------------------------------\n");
+
+    int choice = read_int_range(1, 8);
+    char room[64];
+
+    if (choice >= 1 && choice <= 5) {
+        char block_char = (char)('A' + (choice - 1));
+        while (1) {
+            printf("Enter Room / Lab Number for Block %c (e.g. 101, 304, Lab 2): ", block_char);
+            if (read_line(room, sizeof(room)) > 0) {
+                break;
+            }
+            printf("[!] Room number cannot be empty.\n");
+        }
+        snprintf(dest, max_len, "Block %c, Room %s", block_char, room);
+    } else if (choice == 6) {
+        snprintf(dest, max_len, "Basketball Court");
+    } else if (choice == 7) {
+        snprintf(dest, max_len, "Near Temple");
+    } else if (choice == 8) {
+        snprintf(dest, max_len, "Entrance");
+}
+
+/* ============================================================================
+ * IMPLEMENTATION: Linked List Operations (Item Inventory)
+ * ============================================================================ */
+
+ItemNode* create_item_node(int id, const char *name, const char *desc,
+                           const char *loc, const char *img, const char *date, ItemStatus st) {
+    ItemNode *node = (ItemNode*)malloc(sizeof(ItemNode));
+    if (!node) {
+        fprintf(stderr, "[ERROR] Memory allocation failed for ItemNode!\n");
+        exit(EXIT_FAILURE);
+    }
+    node->id = id;
+    strncpy(node->name, name ? name : "Unknown", sizeof(node->name) - 1);
+    node->name[sizeof(node->name) - 1] = '\0';
+
+    strncpy(node->description, desc ? desc : "None", sizeof(node->description) - 1);
+    node->description[sizeof(node->description) - 1] = '\0';
+
+    strncpy(node->location, loc ? loc : "Unknown", sizeof(node->location) - 1);
+    node->location[sizeof(node->location) - 1] = '\0';
+
+    strncpy(node->image_path, img ? img : "None", sizeof(node->image_path) - 1);
+    node->image_path[sizeof(node->image_path) - 1] = '\0';
+
+    strncpy(node->date_found, date ? date : "N/A", sizeof(node->date_found) - 1);
+    node->date_found[sizeof(node->date_found) - 1] = '\0';
+
+    node->status = st;
+    node->next = NULL;
+    return node;
+}
+
+/**
+ * Inserts an item into the linked list sorted ascending by Item ID.
+ */
+void insert_item_sorted(ItemNode **head_ref, ItemNode *new_node) {
+    if (!head_ref || !new_node) return;
+
+    if (*head_ref == NULL || (*head_ref)->id >= new_node->id) {
+        new_node->next = *head_ref;
+        *head_ref = new_node;
+        return;
+    }
+
+    ItemNode *current = *head_ref;
+    while (current->next != NULL && current->next->id < new_node->id) {
+        current = current->next;
+    }
+    new_node->next = current->next;
+    current->next = new_node;
+}
+
+ItemNode* find_item_by_id(ItemNode *head, int id) {
+    ItemNode *curr = head;
+    while (curr) {
+        if (curr->id == id) {
+            return curr;
+        }
+        curr = curr->next;
+    }
+    return NULL;
+}
+
+int delete_item_by_id(ItemNode **head_ref, int id) {
+    if (!head_ref || !*head_ref) return 0;
+
+    ItemNode *curr = *head_ref;
+    ItemNode *prev = NULL;
+
+    while (curr != NULL && curr->id != id) {
+        prev = curr;
+        curr = curr->next;
+    }
+
+    if (!curr) return 0; /* Not found */
+
+    if (!prev) {
+        *head_ref = curr->next;
+    } else {
+        prev->next = curr->next;
+    }
+
+    free(curr);
+    return 1;
+}
+
+void display_all_items(const ItemNode *head, int only_available) {
+    if (!head) {
+        printf("\n[!] The lost and found inventory is currently empty.\n");
+        return;
+    }
+
+    printf("\n%-6s | %-20s | %-22s | %-12s | %-14s\n",
+           "ID", "NAME", "LOCATION", "DATE FOUND", "STATUS");
+    printf("------------------------------------------------------------------------------------\n");
+
+    int count = 0;
+    const ItemNode *curr = head;
+    while (curr) {
+        if (!only_available || curr->status == STATUS_AVAILABLE) {
+            printf("#%-5d | %-20.20s | %-22.22s | %-12.12s | %-14s\n",
+                   curr->id, curr->name, curr->location, curr->date_found,
+                   status_to_string(curr->status));
+            count++;
+        }
+        curr = curr->next;
+    }
+
+    printf("------------------------------------------------------------------------------------\n");
+    printf("Total items displayed: %d\n", count);
+}
+
+void display_item_detailed(const ItemNode *item) {
+    if (!item) return;
+    printf("\n====================================================\n");
+    printf("               ITEM DETAILS (ID: #%d)               \n", item->id);
+    printf("====================================================\n");
+    printf(" Name        : %s\n", item->name);
+    printf(" Description : %s\n", item->description);
+    printf(" Location    : %s\n", item->location);
+    printf(" Date Found  : %s\n", item->date_found);
+    printf(" Image Path  : %s\n", item->image_path);
+    printf(" Status      : %s\n", status_to_string(item->status));
+    printf("====================================================\n");
+}
+
+void search_items_by_keyword(const ItemNode *head, const char *keyword) {
+    if (!head || !keyword || strlen(keyword) == 0) {
+        printf("\n[!] No search term provided.\n");
+        return;
+    }
+
+    char term_lower[128];
+    strncpy(term_lower, keyword, sizeof(term_lower) - 1);
+    term_lower[sizeof(term_lower) - 1] = '\0';
+    for (size_t i = 0; term_lower[i]; i++) term_lower[i] = (char)tolower((unsigned char)term_lower[i]);
+
+    printf("\n=== SEARCH RESULTS FOR: '%s' ===\n", keyword);
+    printf("%-6s | %-20s | %-22s | %-12s | %-14s\n",
+           "ID", "NAME", "LOCATION", "DATE FOUND", "STATUS");
+    printf("------------------------------------------------------------------------------------\n");
+
+    int found_count = 0;
+    const ItemNode *curr = head;
+    while (curr) {
+        char name_l[MAX_NAME_LEN], desc_l[MAX_DESC_LEN], loc_l[MAX_LOC_LEN];
+        strncpy(name_l, curr->name, sizeof(name_l) - 1); name_l[sizeof(name_l) - 1] = '\0';
+        strncpy(desc_l, curr->description, sizeof(desc_l) - 1); desc_l[sizeof(desc_l) - 1] = '\0';
+        strncpy(loc_l, curr->location, sizeof(loc_l) - 1); loc_l[sizeof(loc_l) - 1] = '\0';
+
+        for (size_t i = 0; name_l[i]; i++) name_l[i] = (char)tolower((unsigned char)name_l[i]);
+        for (size_t i = 0; desc_l[i]; i++) desc_l[i] = (char)tolower((unsigned char)desc_l[i]);
+        for (size_t i = 0; loc_l[i]; i++) loc_l[i] = (char)tolower((unsigned char)loc_l[i]);
+
+        if (strstr(name_l, term_lower) || strstr(desc_l, term_lower) || strstr(loc_l, term_lower)) {
+            printf("#%-5d | %-20.20s | %-22.22s | %-12.12s | %-14s\n",
+                   curr->id, curr->name, curr->location, curr->date_found,
+                   status_to_string(curr->status));
+            found_count++;
+        }
+        curr = curr->next;
+    }
+
+    printf("------------------------------------------------------------------------------------\n");
+    printf("Found %d matching item(s).\n", found_count);
+}
 
 
 
