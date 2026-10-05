@@ -1,0 +1,3 @@
+# ID|NAME|DESCRIPTION|LOCATION|IMAGE_PATH|DATE_FOUND|STATUS
+101|Titan Blue Watch|Dark blue leather strap silver dial|Block B, Room 204|C:/images/watch.jpg|2026-10-05|2
+102|Scientific Calculator|Casio FX-991EX with initials SS on back|Basketball Court|C:/images/calc.jpg|2026-10-05|1
