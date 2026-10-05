@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>College Lost and Found Management System</title>
+  <!-- Tailwind CSS (Gstatic allowed dependency) -->
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* Custom scrollbars and styling */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.025em;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo & Title -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchPortal('student')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300">Campus Lost & Found</span>
+          <span class="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs font-semibold rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">C Core Engine</span>
+        </div>
+      </div>
+
+      <!-- Center Nav Tabs -->
+      <nav class="flex items-center space-x-1 sm:space-x-2">
+        <button id="nav-student" onclick="switchPortal('student')" class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all text-white bg-indigo-600 shadow-sm shadow-indigo-600/30">
+          Student Portal
+        </button>
+        <button id="nav-track" onclick="openTrackModal()" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+          Track My Claim
+        </button>
+        <button id="nav-admin" onclick="switchPortal('admin')" class="px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center space-x-1.5">
+          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          <span>Admin Portal</span>
+        </button>
+        <button onclick="openPolicyModal()" class="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-all" title="1-Year Retention Policy & System Info">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- Server Status Indicator Banner -->
+  <div id="backend-status-banner" class="bg-slate-900 border-b border-slate-800 px-4 py-1.5 text-xs text-center flex items-center justify-center space-x-2">
+    <span id="backend-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+    <span id="backend-status-text" class="text-slate-300 font-mono">Backend: Detecting C Local Server (localhost:8080)...</span>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ===================================================================== -->
+    <!-- 1. STUDENT PORTAL VIEW                                                -->
+    <!-- ===================================================================== -->
+    <section id="portal-student" class="space-y-6">
+      
+      <!-- Hero / Welcome Header -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 p-6 sm:p-8">
+        <div class="relative z-10 max-w-3xl">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-3">
+            Read-Only Student Access • Linked-List Inventory
+          </span>
+          <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Lost Something On Campus?
+          </h1>
+          <p class="mt-2 text-sm sm:text-base text-slate-300">
+            Browse currently found belongings across all blocks and campus grounds. If you spot your item, submit a claim request with your college email to enter the verification queue.
+          </p>
+        </div>
+        <div class="absolute right-4 -bottom-10 opacity-10 pointer-events-none hidden md:block">
+          <svg class="w-72 h-72 text-indigo-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Filters & Search Toolbar -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between shadow-sm">
+        
+        <!-- Keyword Search -->
+        <div class="relative flex-1">
+          <svg class="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input 
+            type="text" 
+            id="student-search-input" 
+            oninput="filterItems()" 
+            placeholder="Search items by name, brand, color, or description..." 
+            class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+          />
+        </div>
+
+        <!-- Location Filter Dropdown -->
+        <div class="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+          <div class="w-full sm:w-auto">
+            <select 
+              id="student-location-filter" 
+              onchange="filterItems()" 
+              class="w-full sm:w-48 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition-all"
+            >
+              <option value="">All Campus Locations</option>
+              <option value="Block A">Block A</option>
+              <option value="Block B">Block B</option>
+              <option value="Block C">Block C</option>
+              <option value="Block D">Block D</option>
+              <option value="Block E">Block E</option>
+              <option value="Basketball Court">Basketball Court</option>
+              <option value="Near Temple">Near Temple</option>
+              <option value="Entrance">Entrance</option>
+            </select>
+          </div>
+
+          <!-- Status Filter -->
+          <div class="w-full sm:w-auto">
+            <select 
+              id="student-status-filter" 
+              onchange="filterItems()" 
+              class="w-full sm:w-44 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition-all"
+            >
+              <option value="AVAILABLE">Available Only</option>
+              <option value="ALL">All Items (Inc. Pending)</option>
+              <option value="PENDING CLAIM">Pending Claims Only</option>
+            </select>
+          </div>
+
+          <button onclick="refreshData()" class="p-2 text-slate-400 hover:text-white bg-slate-950 border border-slate-800 rounded-lg hover:border-slate-700 transition-all" title="Reload Inventory">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Items Grid Display -->
+      <div id="items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Rendered dynamically by JavaScript -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="hidden text-center py-16 bg-slate-900/50 rounded-2xl border border-dashed border-slate-800">
+        <svg class="w-16 h-16 mx-auto text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="text-lg font-semibold text-slate-300">No matching items found</h3>
+        <p class="text-sm text-slate-500 max-w-sm mx-auto mt-1">Try changing your search terms or selecting a different campus location filter.</p>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 2. ADMIN PORTAL VIEW (Password Protected)                             -->
+    <!-- ===================================================================== -->
+    <section id="portal-admin" class="hidden space-y-6">
+      
+      <!-- Admin Login Overlay if not authenticated -->
+      <div id="admin-auth-view" class="max-w-md mx-auto my-12 bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+        <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-center text-white">Administrator Access</h2>
+        <p class="text-xs text-center text-slate-400 mt-1 mb-6">Default credentials: <code class="bg-slate-950 px-1.5 py-0.5 rounded text-amber-300">admin123</code></p>
+        
+        <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Admin Security Password</label>
+            <input 
+              type="password" 
+              id="admin-password-input" 
+              required 
+              placeholder="Enter password..."
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          <div id="admin-auth-error" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded p-2 text-center">
+            Incorrect password. Access denied.
+          </div>
+          <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition-all shadow-md shadow-indigo-600/30">
+            Authenticate & Open Dashboard
+          </button>
+        </form>
+      </div>
+
+      <!-- Admin Authenticated Dashboard -->
+      <div id="admin-dashboard-view" class="hidden space-y-6">
+        
+        <!-- Header Bar -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 class="text-xl font-bold text-white">Admin Control Center</h2>
+              <span class="px-2 py-0.5 text-xs font-semibold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Admin Authorized</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">Manage inventory, process claim queue (FIFO), and inspect 1-Year Retention logs.</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="handleAdminLogout()" class="px-3 py-1.5 bg-slate-950 hover:bg-rose-950/40 text-slate-300 hover:text-rose-400 border border-slate-800 hover:border-rose-900/50 rounded-lg text-xs font-semibold transition-all">
+              Lock / Logout
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs font-medium text-slate-400">Total Items Registered</span>
+            <div id="kpi-total-items" class="text-2xl font-black text-white mt-1">0</div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs font-medium text-emerald-400">Available In Storage</span>
+            <div id="kpi-available-items" class="text-2xl font-black text-emerald-400 mt-1">0</div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs font-medium text-amber-400">Pending In Queue (FIFO)</span>
+            <div id="kpi-queue-count" class="text-2xl font-black text-amber-400 mt-1">0</div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs font-medium text-indigo-400">Claimed (1-Yr Retention)</span>
+            <div id="kpi-claimed-count" class="text-2xl font-black text-indigo-400 mt-1">0</div>
+          </div>
+        </div>
+
+        <!-- Admin Sub-Navigation Tabs -->
+        <div class="border-b border-slate-800 flex space-x-4">
+          <button id="tab-btn-add" onclick="switchAdminTab('add')" class="pb-3 text-sm font-semibold border-b-2 border-indigo-500 text-white">
+            Add Found Item
+          </button>
+          <button id="tab-btn-queue" onclick="switchAdminTab('queue')" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-1.5">
+            <span>Claim Requests Queue</span>
+            <span id="queue-badge-count" class="px-1.5 py-0.2 rounded-full text-xs bg-amber-500 text-slate-950 font-bold">0</span>
+          </button>
+          <button id="tab-btn-history" onclick="switchAdminTab('history')" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+            1-Year Retention Archive
+          </button>
+          <button id="tab-btn-manage" onclick="switchAdminTab('manage')" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+            All Inventory
+          </button>
+        </div>
+
+        <!-- TAB 1: ADD ITEM FORM -->
+        <div id="admin-tab-add" class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-white mb-1">Register New Found Item</h3>
+          <p class="text-xs text-slate-400 mb-6">Logs item into C dynamic linked list and persists to <code class="text-indigo-400">items.txt</code>.</p>
+          
+          <form onsubmit="handleAddItemSubmit(event)" class="space-y-4 max-w-2xl">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Item Name *</label>
+              <input type="text" id="add-item-name" required placeholder="e.g., Titan Blue Watch, Casio Calculator, Blue Umbrella..." class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Detailed Description *</label>
+              <textarea id="add-item-desc" required rows="3" placeholder="Brand, markings, color, condition, scratches, distinct identifiers..." class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+
+            <!-- Location Selection with Sub-Menu Logic -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Campus Location Found *</label>
+                <select id="add-item-loc-type" onchange="toggleRoomInput()" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                  <option value="">Select Location Category...</option>
+                  <option value="Block A">Block A</option>
+                  <option value="Block B">Block B</option>
+                  <option value="Block C">Block C</option>
+                  <option value="Block D">Block D</option>
+                  <option value="Block E">Block E</option>
+                  <option value="Basketball Court">Basketball Court</option>
+                  <option value="Near Temple">Near Temple</option>
+                  <option value="Entrance">Entrance</option>
+                </select>
+              </div>
+
+              <!-- Conditional Room Number Input -->
+              <div id="room-input-container" class="hidden">
+                <label class="block text-xs font-medium text-indigo-300 mb-1">Room / Lab Number *</label>
+                <input type="text" id="add-item-room-no" placeholder="e.g. 204, 301-B, Physics Lab 2..." class="w-full px-3.5 py-2 bg-slate-950 border border-indigo-500/50 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Image File Path / URL (Optional)</label>
+                <input type="text" id="add-item-image" placeholder="e.g., C:/images/watch.jpg or https://..." class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Date Found</label>
+                <input type="date" id="add-item-date" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+            </div>
+
+            <div class="pt-2">
+              <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition-all shadow-md shadow-indigo-600/30">
+                + Register Item into Inventory
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- TAB 2: CLAIM REQUESTS QUEUE (FIFO) -->
+        <div id="admin-tab-queue" class="hidden space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-lg font-bold text-white">Pending Claim Requests Queue (FIFO)</h3>
+                <p class="text-xs text-slate-400">Sequential waiting list. Claims are processed First-In, First-Out to ensure fairness.</p>
+              </div>
+              <span class="text-xs font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
+                Front = Next in Line
+              </span>
+            </div>
+
+            <div id="admin-queue-list" class="space-y-3">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: 1-YEAR CLAIMANT RETENTION DATABASE -->
+        <div id="admin-tab-history" class="hidden space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <h3 class="text-lg font-bold text-white">1-Year Claimant History Database</h3>
+                  <span class="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Audit Archive</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">Permanent record stored in <code class="text-indigo-400">claim_history.txt</code> for college legal and dispute compliance (365-day retention).</p>
+              </div>
+            </div>
+
+            <!-- History Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th class="py-3 px-3">Log Time</th>
+                    <th class="py-3 px-3">Item Name & ID</th>
+                    <th class="py-3 px-3">Location Found</th>
+                    <th class="py-3 px-3">Claimant Name</th>
+                    <th class="py-3 px-3">USN</th>
+                    <th class="py-3 px-3">Phone</th>
+                    <th class="py-3 px-3">College Email</th>
+                    <th class="py-3 px-3">Admin Remarks</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-history-tbody" class="divide-y divide-slate-800/60 font-mono">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: ALL INVENTORY MANAGEMENT -->
+        <div id="admin-tab-manage" class="hidden space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <h3 class="text-lg font-bold text-white mb-1">Full Inventory Directory</h3>
+            <p class="text-xs text-slate-400 mb-4">Underlying Singly Linked List nodes stored in memory and synchronized to <code class="text-indigo-400">items.txt</code>.</p>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th class="py-3 px-3">ID</th>
+                    <th class="py-3 px-3">Item Name</th>
+                    <th class="py-3 px-3">Location</th>
+                    <th class="py-3 px-3">Date Found</th>
+                    <th class="py-3 px-3">Status</th>
+                    <th class="py-3 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-manage-tbody" class="divide-y divide-slate-800/60">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: SUBMIT CLAIM REQUEST (Student Portal)                           -->
+  <!-- ===================================================================== -->
+  <div id="claim-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+      
+      <div class="flex items-start justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-white">Submit Claim Request</h3>
+          <p class="text-xs text-slate-400">Claiming Item: <span id="modal-item-title" class="font-semibold text-indigo-400">#101</span></p>
+        </div>
+        <button onclick="closeClaimModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form onsubmit="handleClaimFormSubmit(event)" class="space-y-3.5">
+        <input type="hidden" id="modal-item-id" />
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Your Full Name *</label>
+          <input type="text" id="claim-name" required placeholder="e.g. Shreya Sharma" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">University USN *</label>
+            <input type="text" id="claim-usn" required placeholder="e.g. 1RV21CS089" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Contact Phone *</label>
+            <input type="tel" id="claim-phone" required placeholder="e.g. 9876543210" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">
+            College Email ID * 
+            <span class="text-amber-400 font-normal">(MUST end with @college.edu)</span>
+          </label>
+          <input 
+            type="email" 
+            id="claim-email" 
+            required 
+            oninput="validateEmailField(this)" 
+            placeholder="e.g. student.cs21@college.edu" 
+            class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" 
+          />
+          <div id="email-feedback" class="text-[11px] mt-1 hidden"></div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Proof of Ownership / Distinguishing Marks *</label>
+          <textarea id="claim-notes" required rows="2.5" placeholder="Mention wallpaper, lock code, scratches, engravings, bill details..." class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+
+        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-[11px] text-slate-400">
+          ℹ️ Your request will be queued in the admin review waiting list (FIFO). You must bring your physical college ID card to the office for final handover.
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="closeClaimModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold">Cancel</button>
+          <button type="submit" id="submit-claim-btn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-all">Submit into Claim Queue</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: TRACK MY CLAIM                                                 -->
+  <!-- ===================================================================== -->
+  <div id="track-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-white">Track Claim Status</h3>
+        <button onclick="closeTrackModal()" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+
+      <div class="space-y-3">
+        <label class="block text-xs font-medium text-slate-300">Enter Your Claim Request ID</label>
+        <div class="flex space-x-2">
+          <input type="number" id="track-input-id" placeholder="e.g. 1001" class="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          <button onclick="handleTrackLookup()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">Lookup</button>
+        </div>
+
+        <div id="track-result-box" class="hidden mt-3 p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2 text-xs">
+          <!-- Dynamic track status -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: 1-YEAR RETENTION POLICY & ARCHITECTURE                         -->
+  <!-- ===================================================================== -->
+  <div id="policy-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">System Architecture & 1-Year Retention Policy</h3>
+            <p class="text-xs text-slate-400">Designed in pure C & modern web frontend</p>
+          </div>
+        </div>
+        <button onclick="closePolicyModal()" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+
+      <div class="space-y-4 text-xs text-slate-300 leading-relaxed">
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+          <h4 class="font-bold text-indigo-400 mb-1">1. Linked List Inventory</h4>
+          <p>The active inventory is managed in a dynamic singly linked list (<code class="text-slate-100">ItemNode*</code>). Items can be inserted in $O(1)$ time, sorted by ID, traversed, searched, or removed upon claim without fixed array memory limits.</p>
+        </div>
+
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+          <h4 class="font-bold text-amber-400 mb-1">2. First-In, First-Out (FIFO) Claim Queue</h4>
+          <p>Claim requests are queued sequentially (<code class="text-slate-100">ClaimQueue</code>). This prevents favoritism or race conditions, ensuring administrators review ownership proof on a strict chronological basis.</p>
+        </div>
+
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+          <h4 class="font-bold text-emerald-400 mb-1">3. Statutory 1-Year Retention Database (<code class="text-slate-100">claim_history.txt</code>)</h4>
+          <p class="mb-2"><strong>Why a 1-Year Archive?</strong> College personal property (laptops, phones, watches, bags) carries legal liability. If an item is fraudulently claimed or disputed, administrators must maintain an immutable audit trail.</p>
+          <ul class="list-disc pl-5 space-y-1 text-slate-400">
+            <li><strong>Audit Trail:</strong> Captures claimant Full Name, University USN, Contact Phone, and verified College Email.</li>
+            <li><strong>365-Day Retention:</strong> ISO timestamps are stamped on every transaction for scheduled annual purging and accreditation audit checks.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closePolicyModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">Got it</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script>
+    /* Configuration */
+    const COLLEGE_DOMAIN = "@college.edu";
+    const API_BASE = "http://localhost:8080/api";
+    let isConnectedToCServer = false;
+    let isAdminLoggedIn = false;
+
+    /* In-Memory Local State (Mirrors C Linked List and Queue) */
+    let inventoryList = [];
+    let claimQueue = [];
+    let claimHistory = [];
+
+    // Sample initial items for standalone client mode
+    const defaultSampleItems = [
+      {
+        id: 101,
+        name: "Titan Blue Watch",
+        description: "Dark blue leather strap, round silver dial, scratch on bezel.",
+        location: "Block B, Room 204",
+        image_path: "C:/images/watch.jpg",
+        date_found: "2026-10-01",
+        status: "AVAILABLE"
+      },
+      {
+        id: 102,
+        name: "Scientific Calculator Casio FX-991EX",
+        description: "Black casing with sticker 'SS' on the protective slip cover.",
+        location: "Basketball Court",
+        image_path: "C:/images/calc.jpg",
+        date_found: "2026-10-02",
+        status: "AVAILABLE"
+      },
+      {
+        id: 103,
+        name: "Dell Wireless Mouse",
+        description: "Matte black optical mouse, missing battery cover clip.",
+        location: "Block C, Room 302",
+        image_path: "None",
+        date_found: "2026-10-03",
+        status: "AVAILABLE"
+      },
+      {
+        id: 104,
+        name: "Set of Two Keys with Red Keychain",
+        description: "Honda bike key + brass Godrej lock key on a red fabric ribbon.",
+        location: "Near Temple",
+        image_path: "None",
+        date_found: "2026-10-04",
+        status: "AVAILABLE"
+      }
+    ];
+
+    /* Initialize Application */
+    window.addEventListener("DOMContentLoaded", async () => {
+      // Set today's date in add item form
+      const dateInput = document.getElementById("add-item-date");
+      if (dateInput) {
+        dateInput.value = new Date().toISOString().split("T")[0];
+      }
+
+      await checkBackendConnection();
+      await loadAllData();
+      renderStudentGrid(inventoryList);
+      updateKpis();
+    });
+
+    /* Check C Backend Server Connectivity */
+    async function checkBackendConnection() {
+      const banner = document.getElementById("backend-status-banner");
+      const dot = document.getElementById("backend-dot");
+      const text = document.getElementById("backend-status-text");
+
+      try {
+        const res = await fetch(`${API_BASE}/health`, { method: "GET", mode: "cors" });
+        if (res.ok) {
+          isConnectedToCServer = true;
+          dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+          text.innerHTML = "Connected to <strong>C Micro HTTP Server</strong> (localhost:8080) • Linked-List & Queue Active in C Engine";
+          text.className = "text-emerald-300 font-mono text-xs";
+          return;
+        }
+      } catch (err) {
+        // Fallback to standalone client engine
+      }
+
+      isConnectedToCServer = false;
+      dot.className = "w-2 h-2 rounded-full bg-indigo-400";
+      text.innerHTML = "Standalone Web Client Mode • Full In-Browser Linked-List & Queue Simulation Active (No server needed)";
+      text.className = "text-indigo-300 font-mono text-xs";
+    }
+
+    /* Load Data either from C Server or LocalStorage */
+    async function loadAllData() {
+      if (isConnectedToCServer) {
+        try {
+          const res = await fetch(`${API_BASE}/items`);
+          inventoryList = await res.json();
+          const qRes = await fetch(`${API_BASE}/claims`);
+          claimQueue = await qRes.json();
+          const hRes = await fetch(`${API_BASE}/history`);
+          claimHistory = await hRes.json();
+          return;
+        } catch (e) {
+          console.warn("Failed fetching from server, falling back to local store", e);
+        }
+      }
+
+      // Local storage fallback
+      const storedItems = localStorage.getItem("c_lostfound_items");
+      inventoryList = storedItems ? JSON.parse(storedItems) : [...defaultSampleItems];
+
+      const storedQueue = localStorage.getItem("c_lostfound_queue");
+      claimQueue = storedQueue ? JSON.parse(storedQueue) : [];
+
+      const storedHist = localStorage.getItem("c_lostfound_history");
+      claimHistory = storedHist ? JSON.parse(storedHist) : [];
+    }
+
+    function saveLocalData() {
+      if (!isConnectedToCServer) {
+        localStorage.setItem("c_lostfound_items", JSON.stringify(inventoryList));
+        localStorage.setItem("c_lostfound_queue", JSON.stringify(claimQueue));
+        localStorage.setItem("c_lostfound_history", JSON.stringify(claimHistory));
+      }
+    }
+
+    /* Portal Switching */
+    function switchPortal(portal) {
+      const studentSec = document.getElementById("portal-student");
+      const adminSec = document.getElementById("portal-admin");
+      const navStudent = document.getElementById("nav-student");
+      const navAdmin = document.getElementById("nav-admin");
+
+      if (portal === 'student') {
+        studentSec.classList.remove("hidden");
+        adminSec.classList.add("hidden");
+        navStudent.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all text-white bg-indigo-600 shadow-sm shadow-indigo-600/30";
+        navAdmin.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center space-x-1.5";
+        renderStudentGrid(inventoryList);
+      } else {
+        studentSec.classList.add("hidden");
+        adminSec.classList.remove("hidden");
+        navAdmin.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all text-white bg-indigo-600 shadow-sm shadow-indigo-600/30 flex items-center space-x-1.5";
+        navStudent.className = "px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all";
+        
+        if (isAdminLoggedIn) {
+          showAdminDashboard();
+        } else {
+          document.getElementById("admin-auth-view").classList.remove("hidden");
+          document.getElementById("admin-dashboard-view").classList.add("hidden");
+        }
+      }
+    }
+
+    /* Admin Authentication */
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const pwInput = document.getElementById("admin-password-input");
+      const errBox = document.getElementById("admin-auth-error");
+
+      if (isConnectedToCServer) {
+        try {
+          const res = await fetch(`${API_BASE}/admin/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: pwInput.value })
+          });
+          if (res.ok) {
+            isAdminLoggedIn = true;
+            errBox.classList.add("hidden");
+            pwInput.value = "";
+            showAdminDashboard();
+            return;
+          }
+        } catch (err) {}
+      } else {
+        if (pwInput.value === "admin123") {
+          isAdminLoggedIn = true;
+          errBox.classList.add("hidden");
+          pwInput.value = "";
+          showAdminDashboard();
+          return;
+        }
+      }
+
+      errBox.classList.remove("hidden");
+    }
+
+    function handleAdminLogout() {
+      isAdminLoggedIn = false;
+      document.getElementById("admin-auth-view").classList.remove("hidden");
+      document.getElementById("admin-dashboard-view").classList.add("hidden");
+    }
+
+    function showAdminDashboard() {
+      document.getElementById("admin-auth-view").classList.add("hidden");
+      document.getElementById("admin-dashboard-view").classList.remove("hidden");
+      updateKpis();
+      renderAdminQueue();
+      renderAdminHistory();
+      renderAdminManage();
+    }
+
+    /* Admin Sub-Tabs */
+    function switchAdminTab(tab) {
+      const tabs = ['add', 'queue', 'history', 'manage'];
+      tabs.forEach(t => {
+        document.getElementById(`admin-tab-${t}`).classList.add("hidden");
+        const btn = document.getElementById(`tab-btn-${t}`);
+        btn.classList.remove("border-indigo-500", "text-white");
+        btn.classList.add("border-transparent", "text-slate-400");
+      });
+
+      document.getElementById(`admin-tab-${tab}`).classList.remove("hidden");
+      const activeBtn = document.getElementById(`tab-btn-${tab}`);
+      activeBtn.classList.remove("border-transparent", "text-slate-400");
+      activeBtn.classList.add("border-indigo-500", "text-white");
+
+      if (tab === 'queue') renderAdminQueue();
+      if (tab === 'history') renderAdminHistory();
+      if (tab === 'manage') renderAdminManage();
+    }
+
+    /* Location Sub-Menu Toggle */
+    function toggleRoomInput() {
+      const locSelect = document.getElementById("add-item-loc-type");
+      const roomContainer = document.getElementById("room-input-container");
+      const roomInput = document.getElementById("add-item-room-no");
+
+      if (locSelect.value.startsWith("Block")) {
+        roomContainer.classList.remove("hidden");
+        roomInput.required = true;
+      } else {
+        roomContainer.classList.add("hidden");
+        roomInput.required = false;
+        roomInput.value = "";
+      }
+    }
+
+    /* Add Item Submit (Admin) */
+    async function handleAddItemSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById("add-item-name").value.trim();
+      const desc = document.getElementById("add-item-desc").value.trim();
+      const locType = document.getElementById("add-item-loc-type").value;
+      const roomNo = document.getElementById("add-item-room-no").value.trim();
+      const img = document.getElementById("add-item-image").value.trim() || "None";
+      const date = document.getElementById("add-item-date").value || new Date().toISOString().split("T")[0];
+
+      let fullLocation = locType;
+      if (locType.startsWith("Block") && roomNo) {
+        fullLocation = `${locType}, Room ${roomNo}`;
+      }
+
+      const newItem = {
+        id: inventoryList.length > 0 ? Math.max(...inventoryList.map(i => i.id)) + 1 : 101,
+        name,
+        description: desc,
+        location: fullLocation,
+        image_path: img,
+        date_found: date,
+        status: "AVAILABLE"
+      };
+
+      if (isConnectedToCServer) {
+        try {
+          await fetch(`${API_BASE}/items`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newItem)
+          });
+          await loadAllData();
+        } catch (err) {
+          inventoryList.push(newItem);
+        }
+      } else {
+        inventoryList.push(newItem);
+        saveLocalData();
+      }
+
+      alert(`[SUCCESS] Item #${newItem.id} ("${newItem.name}") added to inventory!`);
+      e.target.reset();
+      toggleRoomInput();
+      updateKpis();
+      renderStudentGrid(inventoryList);
+      switchAdminTab('manage');
+    }
+
+    /* Render Student Grid */
+    function renderStudentGrid(items) {
+      const grid = document.getElementById("items-grid");
+      const empty = document.getElementById("empty-state");
+
+      grid.innerHTML = "";
+      if (!items || items.length === 0) {
+        empty.classList.remove("hidden");
+        return;
+      }
+      empty.classList.add("hidden");
+
+      items.forEach(item => {
+        let statusBadge = "";
+        let claimButtonHtml = "";
+
+        if (item.status === "AVAILABLE") {
+          statusBadge = `<span class="status-badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Available</span>`;
+          claimButtonHtml = `
+            <button onclick="openClaimModal(${item.id})" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-all shadow-sm">
+              Claim This Item
+            </button>
+          `;
+        } else if (item.status === "PENDING CLAIM") {
+          statusBadge = `<span class="status-badge bg-amber-500/10 text-amber-400 border border-amber-500/20">Claim In Review</span>`;
+          claimButtonHtml = `
+            <button disabled class="w-full py-2 bg-slate-800 text-slate-500 rounded-lg text-xs font-medium cursor-not-allowed">
+              Verification In Progress
+            </button>
+          `;
+        } else {
+          statusBadge = `<span class="status-badge bg-slate-700/50 text-slate-400 border border-slate-700">Claimed & Handed Over</span>`;
+          claimButtonHtml = `
+            <button disabled class="w-full py-2 bg-slate-900 text-slate-600 rounded-lg text-xs font-medium cursor-not-allowed">
+              Archived (Claimed)
+            </button>
+          `;
+        }
+
+        const card = document.createElement("div");
+        card.className = "bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between hover:border-slate-700 transition-all shadow-sm";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <span class="text-xs font-mono font-bold text-slate-400">#${item.id}</span>
+              ${statusBadge}
+            </div>
+
+            <h3 class="text-base font-bold text-white mb-1.5 leading-snug">${escapeHtml(item.name)}</h3>
+            <p class="text-xs text-slate-400 mb-4 line-clamp-3">${escapeHtml(item.description)}</p>
+          </div>
+
+          <div class="space-y-3 pt-3 border-t border-slate-800/80">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-500 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                ${escapeHtml(item.location)}
+              </span>
+              <span class="text-slate-500 font-mono text-[11px]">${escapeHtml(item.date_found)}</span>
+            </div>
+
+            ${item.image_path && item.image_path !== "None" ? `
+              <div class="text-[11px] text-slate-400 bg-slate-950 px-2.5 py-1 rounded truncate border border-slate-800 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span class="truncate" title="${escapeHtml(item.image_path)}">${escapeHtml(item.image_path)}</span>
+              </div>
+            ` : ''}
+
+            ${claimButtonHtml}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    /* Filtering Items */
+    function filterItems() {
+      const q = document.getElementById("student-search-input").value.toLowerCase().trim();
+      const loc = document.getElementById("student-location-filter").value;
+      const statusFilter = document.getElementById("student-status-filter").value;
+
+      const filtered = inventoryList.filter(item => {
+        const matchesQ = !q || item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q) || item.location.toLowerCase().includes(q);
+        const matchesLoc = !loc || item.location.includes(loc);
+        let matchesStatus = true;
+        if (statusFilter === "AVAILABLE") matchesStatus = item.status === "AVAILABLE";
+        if (statusFilter === "PENDING CLAIM") matchesStatus = item.status === "PENDING CLAIM";
+        return matchesQ && matchesLoc && matchesStatus;
+      });
+
+      renderStudentGrid(filtered);
+    }
+
+    /* Refresh button */
+    async function refreshData() {
+      await loadAllData();
+      filterItems();
+      updateKpis();
+    }
+
+    /* Claim Modal & Email Validation */
+    function openClaimModal(itemId) {
+      const item = inventoryList.find(i => i.id === itemId);
+      if (!item) return;
+
+      document.getElementById("modal-item-id").value = item.id;
+      document.getElementById("modal-item-title").innerText = `#${item.id} - ${item.name}`;
+      document.getElementById("claim-email").value = "";
+      document.getElementById("email-feedback").className = "text-[11px] mt-1 hidden";
+      document.getElementById("claim-modal").classList.remove("hidden");
+    }
+
+    function closeClaimModal() {
+      document.getElementById("claim-modal").classList.add("hidden");
+    }
+
+    function validateEmailField(input) {
+      const val = input.value.trim().toLowerCase();
+      const feedback = document.getElementById("email-feedback");
+
+      if (!val) {
+        feedback.className = "text-[11px] mt-1 hidden";
+        return false;
+      }
+
+      if (val.endsWith(COLLEGE_DOMAIN) && val.length > COLLEGE_DOMAIN.length + 2) {
+        feedback.innerText = "✓ Valid college email format.";
+        feedback.className = "text-[11px] mt-1 text-emerald-400 block font-medium";
+        input.classList.remove("border-rose-500");
+        input.classList.add("border-emerald-500");
+        return true;
+      } else {
+        feedback.innerText = `✗ Must end with ${COLLEGE_DOMAIN} (e.g. name@college.edu)`;
+        feedback.className = "text-[11px] mt-1 text-rose-400 block font-medium";
+        input.classList.remove("border-emerald-500");
+        input.classList.add("border-rose-500");
+        return false;
+      }
+    }
+
+    /* Submit Claim */
+    async function handleClaimFormSubmit(e) {
+      e.preventDefault();
+      const itemId = parseInt(document.getElementById("modal-item-id").value);
+      const name = document.getElementById("claim-name").value.trim();
+      const usn = document.getElementById("claim-usn").value.trim();
+      const phone = document.getElementById("claim-phone").value.trim();
+      const email = document.getElementById("claim-email").value.trim();
+      const notes = document.getElementById("claim-notes").value.trim();
+
+      if (!email.toLowerCase().endsWith(COLLEGE_DOMAIN)) {
+        alert(`[!] Invalid Email: You must provide a valid college email ending with ${COLLEGE_DOMAIN}`);
+        return;
+      }
+
+      const reqId = claimQueue.length > 0 ? Math.max(...claimQueue.map(q => q.request_id)) + 1 : 1001;
+      const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
+
+      const claimReq = {
+        request_id: reqId,
+        item_id: itemId,
+        claimant: {
+          name,
+          usn,
+          phone,
+          email,
+          claim_date: nowStr
+        },
+        notes,
+        request_date: nowStr
+      };
+
+      if (isConnectedToCServer) {
+        try {
+          await fetch(`${API_BASE}/claims`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(claimReq)
+          });
+          await loadAllData();
+        } catch (err) {
+          claimQueue.push(claimReq);
+          const itm = inventoryList.find(i => i.id === itemId);
+          if (itm) itm.status = "PENDING CLAIM";
+        }
+      } else {
+        claimQueue.push(claimReq);
+        const itm = inventoryList.find(i => i.id === itemId);
+        if (itm) itm.status = "PENDING CLAIM";
+        saveLocalData();
+      }
+
+      closeClaimModal();
+      filterItems();
+      updateKpis();
+
+      alert(`🎉 CLAIM REQUEST SUBMITTED!\n\nYour Request ID: #${reqId}\nPosition in Queue: ${claimQueue.length}\n\nPlease visit the Lost & Found office with your College ID card referencing Request #${reqId}.`);
+    }
+
+    /* Track Claim */
+    function openTrackModal() {
+      document.getElementById("track-result-box").classList.add("hidden");
+      document.getElementById("track-input-id").value = "";
+      document.getElementById("track-modal").classList.remove("hidden");
+    }
+
+    function closeTrackModal() {
+      document.getElementById("track-modal").classList.add("hidden");
+    }
+
+    function handleTrackLookup() {
+      const reqId = parseInt(document.getElementById("track-input-id").value);
+      const resBox = document.getElementById("track-result-box");
+      if (!reqId) return;
+
+      const idx = claimQueue.findIndex(q => q.request_id === reqId);
+      if (idx !== -1) {
+        const item = claimQueue[idx];
+        resBox.innerHTML = `
+          <div class="text-amber-400 font-bold mb-1">⏳ Status: Pending in Queue (Position #${idx + 1} of ${claimQueue.length})</div>
+          <div><strong>Item ID:</strong> #${item.item_id}</div>
+          <div><strong>Claimant:</strong> ${escapeHtml(item.claimant.name)} (${escapeHtml(item.claimant.usn)})</div>
+          <div><strong>Queued On:</strong> ${escapeHtml(item.request_date)}</div>
+          <p class="text-slate-400 mt-2">Next step: Visit the administration desk with your physical student ID card to inspect and collect your item.</p>
+        `;
+        resBox.classList.remove("hidden");
+        return;
+      }
+
+      // Check if in history (claimed)
+      const histMatch = claimHistory.find(h => h.item_id === reqId || (h.claimant && h.claimant.usn === String(reqId)));
+      resBox.innerHTML = `
+        <div class="text-slate-400">Request ID #${reqId} is not in the pending queue. It may have already been approved and handed over, or dismissed. Please visit the admin desk for details.</div>
+      `;
+      resBox.classList.remove("hidden");
+    }
+
+    /* Admin Queue Render & Process */
+    function renderAdminQueue() {
+      const list = document.getElementById("admin-queue-list");
+      list.innerHTML = "";
+
+      if (claimQueue.length === 0) {
+        list.innerHTML = `<div class="text-center py-10 text-slate-500 text-xs">No pending claim requests in the FIFO queue.</div>`;
+        return;
+      }
+
+      claimQueue.forEach((req, idx) => {
+        const item = inventoryList.find(i => i.id === req.item_id) || { name: "Unknown Item", location: "N/A" };
+        const row = document.createElement("div");
+        row.className = "bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4";
+        row.innerHTML = `
+          <div class="space-y-1 text-xs flex-1">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">Request #${req.request_id}</span>
+              <span class="text-slate-400">Target Item: <strong>#${req.item_id} - ${escapeHtml(item.name)}</strong></span>
+              <span class="text-[11px] text-amber-400 font-mono">Queue Position: ${idx + 1}</span>
+            </div>
+            <div class="text-slate-300 pt-1">
+              <strong>Claimant:</strong> ${escapeHtml(req.claimant.name)} | 
+              <strong>USN:</strong> ${escapeHtml(req.claimant.usn)} | 
+              <strong>Phone:</strong> ${escapeHtml(req.claimant.phone)} | 
+              <strong>Email:</strong> <span class="text-emerald-400">${escapeHtml(req.claimant.email)}</span>
+            </div>
+            <div class="text-slate-400 italic">
+              <strong>Ownership Proof:</strong> "${escapeHtml(req.notes)}"
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 w-full md:w-auto">
+            <button onclick="processQueueDecision(${req.request_id}, 'APPROVE')" class="flex-1 md:flex-initial px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm">
+              Approve & Hand Over
+            </button>
+            <button onclick="processQueueDecision(${req.request_id}, 'REJECT')" class="flex-1 md:flex-initial px-3 py-1.5 bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-300 rounded-lg text-xs font-semibold">
+              Reject
+            </button>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    /* Process Queue Item */
+    async function processQueueDecision(reqId, decision) {
+      const idx = claimQueue.findIndex(q => q.request_id === reqId);
+      if (idx === -1) return;
+
+      const req = claimQueue[idx];
+      const item = inventoryList.find(i => i.id === req.item_id);
+
+      if (decision === 'APPROVE') {
+        const remarks = prompt("Enter Admin Verification Remarks (e.g. Student ID verified in person):", "Verified via Physical College ID card");
+        if (remarks === null) return;
+
+        if (item) item.status = "CLAIMED";
+        
+        // Append to 1-Year Retention History
+        const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
+        const record = {
+          log_time: nowStr,
+          item_id: req.item_id,
+          item_name: item ? item.name : "N/A",
+          location: item ? item.location : "N/A",
+          claimant: req.claimant,
+          remarks: remarks || "ID verified"
+        };
+        claimHistory.unshift(record);
+
+        // Dequeue from FIFO Queue
+        claimQueue.splice(idx, 1);
+
+        if (isConnectedToCServer) {
+          try {
+            await fetch(`${API_BASE}/claims/process`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ request_id: reqId, action: "APPROVE", remarks })
+            });
+            await loadAllData();
+          } catch(e) {}
+        } else {
+          saveLocalData();
+        }
+
+        alert(`[SUCCESS] Request #${reqId} approved! Record logged into 1-Year Retention Archive.`);
+      } else {
+        if (!confirm(`Reject and dismiss Claim Request #${reqId}?`)) return;
+        claimQueue.splice(idx, 1);
+        if (item) item.status = "AVAILABLE";
+
+        if (isConnectedToCServer) {
+          try {
+            await fetch(`${API_BASE}/claims/process`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ request_id: reqId, action: "REJECT" })
+            });
+            await loadAllData();
+          } catch(e) {}
+        } else {
+          saveLocalData();
+        }
+      }
+
+      updateKpis();
+      renderAdminQueue();
+      renderAdminHistory();
+      renderAdminManage();
+      filterItems();
+    }
+
+    /* Render 1-Year History */
+    function renderAdminHistory() {
+      const tbody = document.getElementById("admin-history-tbody");
+      tbody.innerHTML = "";
+
+      if (claimHistory.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-500 font-sans">No claim disbursement records logged yet.</td></tr>`;
+        return;
+      }
+
+      claimHistory.forEach(h => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/30 transition-all";
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 text-slate-400 whitespace-nowrap">${escapeHtml(h.log_time || 'N/A')}</td>
+          <td class="py-2.5 px-3 text-white font-sans font-semibold">#${h.item_id} ${escapeHtml(h.item_name)}</td>
+          <td class="py-2.5 px-3 text-slate-400 font-sans">${escapeHtml(h.location || 'N/A')}</td>
+          <td class="py-2.5 px-3 text-indigo-300 font-sans font-medium">${escapeHtml(h.claimant?.name || 'N/A')}</td>
+          <td class="py-2.5 px-3 text-slate-300">${escapeHtml(h.claimant?.usn || 'N/A')}</td>
+          <td class="py-2.5 px-3 text-slate-400">${escapeHtml(h.claimant?.phone || 'N/A')}</td>
+          <td class="py-2.5 px-3 text-emerald-400">${escapeHtml(h.claimant?.email || 'N/A')}</td>
+          <td class="py-2.5 px-3 text-slate-400 font-sans">${escapeHtml(h.remarks || 'Verified')}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* Render Admin Manage Table */
+    function renderAdminManage() {
+      const tbody = document.getElementById("admin-manage-tbody");
+      tbody.innerHTML = "";
+
+      inventoryList.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/30 transition-all";
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-mono font-bold text-slate-400">#${item.id}</td>
+          <td class="py-2.5 px-3 text-white font-medium">${escapeHtml(item.name)}</td>
+          <td class="py-2.5 px-3 text-slate-400">${escapeHtml(item.location)}</td>
+          <td class="py-2.5 px-3 text-slate-400 font-mono text-[11px]">${escapeHtml(item.date_found)}</td>
+          <td class="py-2.5 px-3">
+            <span class="status-badge ${item.status === 'AVAILABLE' ? 'bg-emerald-500/10 text-emerald-400' : (item.status === 'PENDING CLAIM' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-800 text-slate-500')}">
+              ${item.status}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 text-right">
+            <button onclick="deleteInventoryItem(${item.id})" class="text-rose-400 hover:text-rose-300 text-xs px-2 py-1 rounded hover:bg-rose-500/10 transition-all">
+              Delete
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function deleteInventoryItem(id) {
+      if (!confirm(`Permanently delete Item #${id} from inventory linked list?`)) return;
+      const idx = inventoryList.findIndex(i => i.id === id);
+      if (idx !== -1) {
+        inventoryList.splice(idx, 1);
+        if (isConnectedToCServer) {
+          try {
+            await fetch(`${API_BASE}/items?id=${id}`, { method: "DELETE" });
+          } catch(e) {}
+        } else {
+          saveLocalData();
+        }
+        updateKpis();
+        renderAdminManage();
+        filterItems();
+      }
+    }
+
+    /* Update KPI metrics */
+    function updateKpis() {
+      const total = inventoryList.length;
+      const avail = inventoryList.filter(i => i.status === "AVAILABLE").length;
+      const queued = claimQueue.length;
+      const claimed = claimHistory.length;
+
+      document.getElementById("kpi-total-items").innerText = total;
+      document.getElementById("kpi-available-items").innerText = avail;
+      document.getElementById("kpi-queue-count").innerText = queued;
+      document.getElementById("kpi-claimed-count").innerText = claimed;
+      document.getElementById("queue-badge-count").innerText = queued;
+    }
+
+    /* Policy Modal */
+    function openPolicyModal() { document.getElementById("policy-modal").classList.remove("hidden"); }
+    function closePolicyModal() { document.getElementById("policy-modal").classList.add("hidden"); }
+
+    /* Utility */
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
