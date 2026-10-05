@@ -42,5 +42,83 @@
 #include <termios.h>
 #include <unistd.h>
 #endif
+/* Configuration Constants */
+#define DEFAULT_ADMIN_PASSWORD "admin123"
+#define COLLEGE_EMAIL_DOMAIN   "@college.edu"
+#define ITEMS_FILE             "items.txt"
+#define CLAIMS_QUEUE_FILE      "claims_queue.txt"
+#define CLAIM_HISTORY_FILE     "claim_history.txt"
+
+#define MAX_NAME_LEN        64
+#define MAX_DESC_LEN        256
+#define MAX_LOC_LEN         128
+#define MAX_PATH_LEN        260
+#define MAX_DATE_LEN        32
+#define MAX_USN_LEN         32
+#define MAX_PHONE_LEN       20
+#define MAX_EMAIL_LEN       80
+#define MAX_PASS_LEN        32
+#define BUFFER_SIZE         512
+
+/* Status Enum for Items */
+typedef enum {
+    STATUS_AVAILABLE = 0,    /* Item is in storage, available to be claimed */
+    STATUS_PENDING_CLAIM = 1,/* A claim request is queued and awaiting verification */
+    STATUS_CLAIMED = 2       /* Item has been verified and handed over */
+} ItemStatus;
+
+/* Convert ItemStatus to String representation */
+const char* status_to_string(ItemStatus status) {
+    switch (status) {
+        case STATUS_AVAILABLE:     return "AVAILABLE";
+        case STATUS_PENDING_CLAIM: return "PENDING CLAIM";
+        case STATUS_CLAIMED:       return "CLAIMED";
+        default:                   return "UNKNOWN";
+    }
+}
+
+/* ----------------------------------------------------------------------------
+ * DATA STRUCTURE: Item Node (Linked List for Inventory)
+ * ---------------------------------------------------------------------------- */
+typedef struct ItemNode {
+    int id;                         /* Unique Item Identification Number */
+    char name[MAX_NAME_LEN];        /* Name of the item */
+    char description[MAX_DESC_LEN]; /* Description / color / distinguishing marks */
+    char location[MAX_LOC_LEN];     /* Location found (Block + Room or Area) */
+    char image_path[MAX_PATH_LEN];  /* File path to item picture */
+    char date_found[MAX_DATE_LEN];  /* Date found (YYYY-MM-DD) */
+    ItemStatus status;              /* Current availability status */
+    struct ItemNode *next;          /* Pointer to the next item node */
+} ItemNode;
+
+/* ----------------------------------------------------------------------------
+ * DATA STRUCTURE: Claimant Information
+ * ---------------------------------------------------------------------------- */
+typedef struct {
+    char name[MAX_NAME_LEN];        /* Claimant's full name */
+    char usn[MAX_USN_LEN];          /* University Seat Number (Student ID) */
+    char phone[MAX_PHONE_LEN];      /* Contact telephone number */
+    char email[MAX_EMAIL_LEN];      /* College-issued email address */
+    char claim_date[MAX_DATE_LEN];  /* Date & time claim was logged */
+} Claimant;
+
+/* ----------------------------------------------------------------------------
+ * DATA STRUCTURE: Claim Request Node & Queue (FIFO Waiting List)
+ * ---------------------------------------------------------------------------- */
+typedef struct ClaimRequestNode {
+    int request_id;                 /* Unique claim request ID */
+    int item_id;                    /* Target item ID */
+    Claimant claimant;              /* Claimant personal details */
+    char notes[MAX_DESC_LEN];       /* Proof of ownership / description provided by claimant */
+    char request_date[MAX_DATE_LEN];/* Timestamp of request submission */
+    struct ClaimRequestNode *next;  /* Pointer to next request in queue */
+} ClaimRequestNode;
+
+typedef struct {
+    ClaimRequestNode *front;        /* Head of queue (processed next) */
+    ClaimRequestNode *rear;         /* Tail of queue (new requests added here) */
+    int count;                      /* Number of pending requests in queue */
+} ClaimQueue;
+
 
 
