@@ -609,4 +609,384 @@ void search_items_by_keyword(const ItemNode *head, const char *keyword) {
 }
 
 
+void filter_items_by_location(const ItemNode *head, const char *loc_query) {
+    if (!head || !loc_query) return;
+
+    printf("\n=== ITEMS FILTERED BY: '%s' ===\n", loc_query);
+    printf("%-6s | %-20s | %-22s | %-12s | %-14s\n",
+           "ID", "NAME", "LOCATION", "DATE FOUND", "STATUS");
+    printf("------------------------------------------------------------------------------------\n");
+
+    int count = 0;
+    const ItemNode *curr = head;
+    while (curr) {
+        if (strstr(curr->location, loc_query) != NULL) {
+            printf("#%-5d | %-20.20s | %-22.22s | %-12.12s | %-14s\n",
+                   curr->id, curr->name, curr->location, curr->date_found,
+                   status_to_string(curr->status));
+            count++;
+        }
+        curr = curr->next;
+    }
+
+    printf("------------------------------------------------------------------------------------\n");
+    printf("Matches in '%s': %d\n", loc_query, count);
+}
+
+void free_inventory(ItemNode **head_ref) {
+    if (!head_ref) return;
+    ItemNode *curr = *head_ref;
+    while (curr) {
+        ItemNode *temp = curr;
+        curr = curr->next;
+        free(temp);
+    }
+    *head_ref = NULL;
+}
+
+/* ============================================================================
+ * IMPLEMENTATION: Queue Operations (Claim Requests Waiting List)
+ * ============================================================================ */
+
+void queue_init(ClaimQueue *q) {
+    if (!q) return;
+    q->front = NULL;
+    q->rear = NULL;
+    q->count = 0;
+}
+
+int queue_enqueue(ClaimQueue *q, int req_id, int item_id, const Claimant *claimant,
+                  const char *notes, const char *req_date) {
+    if (!q || !claimant) return 0;
+
+    ClaimRequestNode *node = (ClaimRequestNode*)malloc(sizeof(ClaimRequestNode));
+    if (!node) {
+        fprintf(stderr, "[ERROR] Memory allocation failed for ClaimRequestNode!\n");
+        return 0;
+    }
+
+    node->request_id = req_id;
+    node->item_id = item_id;
+    node->claimant = *claimant;
+
+    strncpy(node->notes, notes ? notes : "", sizeof(node->notes) - 1);
+    node->notes[sizeof(node->notes) - 1] = '\0';
+
+    strncpy(node->request_date, req_date ? req_date : "N/A", sizeof(node->request_date) - 1);
+    node->request_date[sizeof(node->request_date) - 1] = '\0';
+
+    node->next = NULL;
+
+    if (q->rear == NULL) {
+        q->front = node;
+        q->rear = node;
+    } else {
+        q->rear->next = node;
+        q->rear = node;
+    }
+    q->count++;
+    return 1;
+}
+
+int queue_dequeue(ClaimQueue *q, ClaimRequestNode *out_node) {
+    if (!q || q->front == NULL) return 0;
+
+    ClaimRequestNode *temp = q->front;
+    if (out_node) {
+        *out_node = *temp;
+        out_node->next = NULL;
+    }
+
+    q->front = q->front->next;
+    if (q->front == NULL) {
+        q->rear = NULL;
+    }
+    q->count--;
+
+    free(temp);
+    return 1;
+}
+
+void queue_display(const ClaimQueue *q) {
+    if (!q || q->count == 0) {
+        printf("\n[*] The Claim Requests Waiting Queue is currently empty. No pending claims.\n");
+        return;
+    }
+
+    printf("\n================================================================================\n");
+    printf("             PENDING CLAIM REQUESTS QUEUE (FIFO WAITING LIST - %d TOTAL)         \n", q->count);
+    printf("================================================================================\n");
+    printf("%-8s | %-8s | %-18s | %-12s | %-20s\n",
+           "REQ ID", "ITEM ID", "CLAIMANT NAME", "USN", "REQUEST DATE");
+    printf("--------------------------------------------------------------------------------\n");
+
+    const ClaimRequestNode *curr = q->front;
+    int pos = 1;
+    while (curr) {
+        printf("#%-7d | #%-7d | %-18.18s | %-12.12s | %-20.20s (Pos: %d)\n",
+               curr->request_id, curr->item_id, curr->claimant.name,
+               curr->claimant.usn, curr->request_date, pos++);
+        curr = curr->next;
+    }
+    printf("================================================================================\n");
+}
+
+ClaimRequestNode* queue_find_by_req_id(const ClaimQueue *q, int req_id) {
+    if (!q) return NULL;
+    ClaimRequestNode *curr = q->front;
+    while (curr) {
+        if (curr->request_id == req_id) {
+            return curr;
+        }
+        curr = curr->next;
+    }
+    return NULL;
+}
+
+void queue_free(ClaimQueue *q) {
+    if (!q) return;
+    ClaimRequestNode *curr = q->front;
+    while (curr) {
+        ClaimRequestNode *temp = curr;
+        curr = curr->next;
+        free(temp);
+    }
+    q->front = NULL;
+    q->rear = NULL;
+    q->count = 0;
+}
+
+/* ============================================================================
+ * IMPLEMENTATION: File I/O & 1-Year Retention Database Operations
+ * ============================================================================ */
+
+/**
+ * Loads inventory from ITEMS_FILE.
+ * File format per line:
+ * ID|NAME|DESCRIPTION|LOCATION|IMAGE_PATH|DATE_FOUND|STATUS
+ */
+void load_inventory_from_file(const char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        /* File doesn't exist yet; initial run will create it */
+        return;
+    }
+
+    free_inventory(&g_inventory_head);
+    char line[BUFFER_SIZE * 2];
+    int max_id = 100;
+
+    while (fgets(line, sizeof(line), fp)) {
+        trim_whitespace(line);
+        if (strlen(line) == 0 || line[0] == '#') continue;
+
+        int id = 0, st_int = 0;
+        char name[MAX_NAME_LEN] = {0};
+        char desc[MAX_DESC_LEN] = {0};
+        char loc[MAX_LOC_LEN] = {0};
+        char img[MAX_PATH_LEN] = {0};
+        char date[MAX_DATE_LEN] = {0};
+
+        /* Parse pipe-delimited values safely */
+        char *token = strtok(line, "|");
+        if (token) id = atoi(token);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(name, token, sizeof(name) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(desc, token, sizeof(desc) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(loc, token, sizeof(loc) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(img, token, sizeof(img) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(date, token, sizeof(date) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) st_int = atoi(token);
+
+        if (id > 0) {
+            ItemNode *node = create_item_node(id, name, desc, loc, img, date, (ItemStatus)st_int);
+            insert_item_sorted(&g_inventory_head, node);
+            if (id > max_id) max_id = id;
+        }
+    }
+    fclose(fp);
+    g_next_item_id = max_id + 1;
+}
+
+/**
+ * Persists all inventory items to ITEMS_FILE.
+ */
+void save_inventory_to_file(const char *filename) {
+    FILE *fp = fopen(filename, "w");
+    if (!fp) {
+        fprintf(stderr, "[ERROR] Cannot open '%s' for writing inventory!\n", filename);
+        return;
+    }
+
+    fprintf(fp, "# ID|NAME|DESCRIPTION|LOCATION|IMAGE_PATH|DATE_FOUND|STATUS\n");
+    ItemNode *curr = g_inventory_head;
+    while (curr) {
+        fprintf(fp, "%d|%s|%s|%s|%s|%s|%d\n",
+                curr->id, curr->name, curr->description, curr->location,
+                curr->image_path, curr->date_found, (int)curr->status);
+        curr = curr->next;
+    }
+    fclose(fp);
+}
+
+/**
+ * Loads pending claim requests from CLAIMS_QUEUE_FILE.
+ * Format per line:
+ * REQ_ID|ITEM_ID|CLAIMANT_NAME|USN|PHONE|EMAIL|CLAIM_DATE|NOTES|REQ_DATE
+ */
+void load_queue_from_file(const char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) return;
+
+    queue_free(&g_claim_queue);
+    char line[BUFFER_SIZE * 2];
+    int max_req = 1000;
+
+    while (fgets(line, sizeof(line), fp)) {
+        trim_whitespace(line);
+        if (strlen(line) == 0 || line[0] == '#') continue;
+
+        int req_id = 0, item_id = 0;
+        Claimant c = {0};
+        char notes[MAX_DESC_LEN] = {0};
+        char req_date[MAX_DATE_LEN] = {0};
+
+        char *token = strtok(line, "|");
+        if (token) req_id = atoi(token);
+
+        token = strtok(NULL, "|");
+        if (token) item_id = atoi(token);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(c.name, token, sizeof(c.name) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(c.usn, token, sizeof(c.usn) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(c.phone, token, sizeof(c.phone) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(c.email, token, sizeof(c.email) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(c.claim_date, token, sizeof(c.claim_date) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(notes, token, sizeof(notes) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(req_date, token, sizeof(req_date) - 1);
+
+        if (req_id > 0 && item_id > 0) {
+            queue_enqueue(&g_claim_queue, req_id, item_id, &c, notes, req_date);
+            if (req_id > max_req) max_req = req_id;
+        }
+    }
+    fclose(fp);
+    g_next_request_id = max_req + 1;
+}
+
+/**
+ * Persists pending claim queue to CLAIMS_QUEUE_FILE.
+ */
+void save_queue_to_file(const char *filename) {
+    FILE *fp = fopen(filename, "w");
+    if (!fp) {
+        fprintf(stderr, "[ERROR] Cannot open '%s' for saving queue!\n", filename);
+        return;
+    }
+
+    fprintf(fp, "# REQ_ID|ITEM_ID|CLAIMANT_NAME|USN|PHONE|EMAIL|CLAIM_DATE|NOTES|REQ_DATE\n");
+    ClaimRequestNode *curr = g_claim_queue.front;
+    while (curr) {
+        fprintf(fp, "%d|%d|%s|%s|%s|%s|%s|%s|%s\n",
+                curr->request_id, curr->item_id, curr->claimant.name,
+                curr->claimant.usn, curr->claimant.phone, curr->claimant.email,
+                curr->claimant.claim_date, curr->notes, curr->request_date);
+        curr = curr->next;
+    }
+    fclose(fp);
+}
+
+/**
+ * ============================================================================
+ * CLAIM HISTORY DATABASE & 1-YEAR RETENTION POLICY
+ * ============================================================================
+ * [1-YEAR AUDIT RETENTION EXPLANATION]:
+ * This function appends each verified claim transaction to "claim_history.txt".
+ * In college administration, lost items (electronics, IDs, wallets, keys) carry
+ * financial and legal responsibilities.
+ *
+ * This file serves as the permanent 1-Year Retention Archive:
+ * 1. Legal & Dispute Verification: If an item is mistakenly claimed by the wrong
+ *    individual, the audit trail retains the claimant's USN, Phone, and verified
+ *    College Email for disciplinary or legal investigation.
+ * 2. Automated / Periodic Archival: Each entry records an ISO timestamp.
+ *    College IT batch scripts or annual audits review entries older than 365 days
+ *    for cold-storage archival or safe purging in accordance with data privacy laws.
+ * 3. Non-Destructive Storage: Active items can be marked CLAIMED or cleared from
+ *    the active view, but the claimant database is append-only, preserving an
+ *    immutable log throughout the academic year.
+ * ============================================================================
+ */
+void append_claim_to_history(const ItemNode *item, const Claimant *claimant,
+                             const char *action_notes, const char *filename) {
+    if (!item || !claimant) return;
+
+    FILE *fp = fopen(filename, "a");
+    if (!fp) {
+        fprintf(stderr, "[ERROR] Unable to open Claim History file '%s' for appending!\n", filename);
+        return;
+    }
+
+    char current_time[MAX_DATE_LEN];
+    get_current_timestamp_str(current_time, sizeof(current_time));
+
+    fprintf(fp, "================================================================================\n");
+    fprintf(fp, "TRANSACTION RECORD: CLAIM & DISBURSEMENT AUDIT LOG\n");
+    fprintf(fp, "Log Timestamp       : %s\n", current_time);
+    fprintf(fp, "[RETENTION POLICY]  : Retain this record for 1-Year (365 days) from log date.\n");
+    fprintf(fp, "--------------------------------------------------------------------------------\n");
+    fprintf(fp, "ITEM INFORMATION:\n");
+    fprintf(fp, "  - Item ID         : #%d\n", item->id);
+    fprintf(fp, "  - Item Name       : %s\n", item->name);
+    fprintf(fp, "  - Description     : %s\n", item->description);
+    fprintf(fp, "  - Found Location  : %s\n", item->location);
+    fprintf(fp, "  - Date Found      : %s\n", item->date_found);
+    fprintf(fp, "  - Image Path      : %s\n", item->image_path);
+    fprintf(fp, "CLAIMANT DETAILS (BORROWER / RECIPIENT):\n");
+    fprintf(fp, "  - Full Name       : %s\n", claimant->name);
+    fprintf(fp, "  - College USN     : %s\n", claimant->usn);
+    fprintf(fp, "  - Contact Phone   : %s\n", claimant->phone);
+    fprintf(fp, "  - Verified Email  : %s\n", claimant->email);
+    fprintf(fp, "  - Claim Timestamp : %s\n", claimant->claim_date);
+    fprintf(fp, "OFFICE VERIFICATION:\n");
+    fprintf(fp, "  - Handover Status : CLAIMED & VERIFIED BY ADMIN\n");
+    fprintf(fp, "  - Admin Remarks   : %s\n", (action_notes && strlen(action_notes) > 0) ? action_notes : "Identity verified via college ID card.");
+    fprintf(fp, "================================================================================\n\n");
+
+    fclose(fp);
+    printf("[+] Claimant history permanently written to '%s' (1-Year Retention Archive).\n", filename);
+}
+
+void display_claim_history_file(const char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        printf("\n[*] No claim history recorded yet. The file '%s' is empty.\n", filename);
+        return;
+    }
+
+
 
