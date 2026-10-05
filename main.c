@@ -119,6 +119,31 @@ typedef struct {
     ClaimRequestNode *rear;         /* Tail of queue (new requests added here) */
     int count;                      /* Number of pending requests in queue */
 } ClaimQueue;
+/* Global state variables */
+static ItemNode *g_inventory_head = NULL;
+static ClaimQueue g_claim_queue = { NULL, NULL, 0 };
+static char g_admin_password[MAX_PASS_LEN] = DEFAULT_ADMIN_PASSWORD;
+static int g_next_item_id = 101;
+static int g_next_request_id = 1001;
 
+/* ----------------------------------------------------------------------------
+ * FUNCTION DECLARATIONS (Modular Architecture)
+ * ---------------------------------------------------------------------------- */
+
+/* Utility and Input Helpers */
+void get_current_date_str(char *dest, size_t max_size);
+void get_current_timestamp_str(char *dest, size_t max_size);
+void trim_whitespace(char *str);
+int  read_line(char *dest, size_t max_len);
+int  read_int_range(int min_val, int max_val);
+void read_masked_password(char *dest, size_t max_len);
+void clear_screen(void);
+void pause_console(void);
+
+/* Validation Helpers */
+int validate_college_email(const char *email, const char *required_domain);
+int validate_phone(const char *phone);
+int validate_usn(const char *usn);
+void prompt_location(char *dest, size_t max_len);
 
 
