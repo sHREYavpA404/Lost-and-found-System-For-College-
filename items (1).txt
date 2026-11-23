@@ -1,0 +1,9 @@
+# ID|NAME|DESCRIPTION|LOCATION|IMAGE_PATH|DATE_FOUND|STATUS|CATEGORY|VALUE_TIER|DATE_POSTED
+101|Titan Blue Watch|Dark blue leather strap silver dial|Block B, Room 204|C:/images/watch.jpg|2026-10-05|2|Electronics|HIGH|2026-10-05
+102|Scientific Calculator|Casio FX-991EX with initials SS on back|Basketball Court|C:/images/calc.jpg|2026-10-05|1|Books & Stationery|LOW|2026-10-05
+103|Dell Inspiron 15 Laptop|Silver finish, Intel Core i7, sticker on top lid|Block A, Room 304|C:/images/laptop.jpg|2026-11-10|0|Electronics|HIGH|2026-11-10
+104|Milton Stainless Steel Water Bottle|750ml matte black insulated flask with silver cap|Basketball Court|C:/images/bottle.jpg|2026-11-12|0|Bags & Bottles|LOW|2026-11-12
+105|College Student ID Card|Name: Rahul Verma, Dept of Computer Science|Near Temple|None|2026-11-14|0|IDs & Cards|LOW|2026-11-14
+106|Black Folding Umbrella|Compact automatic open-close with wooden curved handle|Entrance|C:/images/umbrella.jpg|2026-11-15|1|Personal Accessories|LOW|2026-11-15
+107|Data Structures & Algorithms CLRS|CLRS 3rd Edition hardcover, notes on chapter 4|Block C, Room 102|None|2026-11-15|0|Books & Stationery|LOW|2026-11-15
+108|Apple iPhone 13 128GB|Midnight Blue color, transparent silicon case with metro pass|Block D, Room 201|C:/images/iphone.jpg|2026-11-16|0|Electronics|HIGH|2026-11-16
