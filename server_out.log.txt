@@ -1,0 +1,15 @@
+====================================================================
+    COLLEGE LOST & FOUND MANAGEMENT SYSTEM - C WEB SERVER           
+====================================================================
+[+] Active Inventory Linked List loaded (with Category & Tier support).
+[+] Pending Claim Requests FIFO Queue loaded (with Appointment Scheduling).
+
+====================================================================
+ [ONLINE] Web Server running at: http://localhost:8080/
+ [ONLINE] Serving Frontend     : web/index.html
+ [ONLINE] REST API Endpoint    : http://localhost:8080/api/items
+ [ONLINE] Features Active     : Low-Priced Express | High-Value Security
+                                 Scheduled Visits   | Category Search
+====================================================================
+ Press Ctrl+C in console to stop server.
+
