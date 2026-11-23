@@ -1455,5 +1455,733 @@ void edit_item_details(void) {
 
     printf("\nUpdate Item Status? (1 = AVAILABLE, 2 = PENDING CLAIM, 3 = CLAIMED, 4 = Keep '%s'): ", status_to_string(item->status));
     int st_c = read_int_range(1, 4);
+if (st_c == 1) item->status = STATUS_AVAILABLE;
+    else if (st_c == 2) item->status = STATUS_PENDING_CLAIM;
+    else if (st_c == 3) item->status = STATUS_CLAIMED;
+
+    save_inventory_to_file(ITEMS_FILE);
+    printf("\n[SUCCESS] Item #%d updated successfully!\n", item->id);
+    display_item_detailed(item);
+}
+
+void edit_claim_request(void) {
+    printf("\n====================================================\n");
+    printf("         EDIT / RESCHEDULE CLAIM REQUEST (ADMIN)     \n");
+    printf("====================================================\n");
+    if (g_claim_queue.count == 0) {
+        printf("[*] No pending claims in queue to edit.\n");
+        return;
+    }
+
+    queue_display(&g_claim_queue);
+    printf("\nEnter Claim Request ID to Edit (e.g. 1001): ");
+    char req_buf[32];
+    int req_id = 0;
+    if (read_line(req_buf, sizeof(req_buf)) == 0 || (req_id = atoi(req_buf)) <= 0) {
+        printf("[!] Invalid Request ID.\n");
+        return;
+    }
+
+    ClaimRequestNode *node = queue_find_by_req_id(&g_claim_queue, req_id);
+    if (!node) {
+        printf("[!] Claim Request #%d not found in queue.\n", req_id);
+        return;
+    }
+
+    printf("\nEditing Claim Request #%d (Item #%d):\n", node->request_id, node->item_id);
+    printf(" Claimant Name: %s | USN: %s | Phone: %s | Email: %s\n",
+           node->claimant.name, node->claimant.usn, node->claimant.phone, node->claimant.email);
+    printf(" Scheduled Visit: %s, %s\n", node->visit_date, node->visit_slot);
+
+    char input[MAX_DESC_LEN];
+
+    printf("\nEnter New Claimant Name [Press Enter to keep '%s']: ", node->claimant.name);
+    if (read_line(input, sizeof(input)) > 0) {
+        strncpy(node->claimant.name, input, sizeof(node->claimant.name) - 1);
+    }
+
+    printf("Enter New USN [Press Enter to keep '%s']: ", node->claimant.usn);
+    if (read_line(input, sizeof(input)) > 0) {
+        strncpy(node->claimant.usn, input, sizeof(node->claimant.usn) - 1);
+    }
+
+    printf("Enter New Phone [Press Enter to keep '%s']: ", node->claimant.phone);
+    if (read_line(input, sizeof(input)) > 0) {
+        strncpy(node->claimant.phone, input, sizeof(node->claimant.phone) - 1);
+    }
+
+    printf("Enter New College Email [Press Enter to keep '%s']: ", node->claimant.email);
+    if (read_line(input, sizeof(input)) > 0) {
+        if (validate_college_email(input, COLLEGE_EMAIL_DOMAIN)) {
+            strncpy(node->claimant.email, input, sizeof(node->claimant.email) - 1);
+        } else {
+            printf("[!] Invalid email, keeping original.\n");
+        }
+    }
+
+    printf("Do you want to reschedule campus visit? (1 = Yes, 2 = No): ");
+    int resched = read_int_range(1, 2);
+    if (resched == 1) {
+        prompt_campus_visit_slot(node->visit_date, sizeof(node->visit_date), node->visit_slot, sizeof(node->visit_slot));
+    }
+
+    printf("Enter New Proof Notes [Press Enter to keep current]: ");
+    if (read_line(input, sizeof(input)) > 0) {
+        strncpy(node->notes, input, sizeof(node->notes) - 1);
+    }
+
+    save_queue_to_file(CLAIMS_QUEUE_FILE);
+    printf("\n[SUCCESS] Claim Request #%d updated successfully!\n", node->request_id);
+}
+
+void process_claim_from_queue(void) {
+    if (g_claim_queue.count == 0) {
+        printf("\n[*] No pending claim requests in the queue to process.\n");
+        return;
+    }
+
+    ClaimRequestNode *req = g_claim_queue.front;
+    ItemNode *item = find_item_by_id(g_inventory_head, req->item_id);
+
+    printf("\n====================================================================\n");
+    printf("              NEXT CLAIM REQUEST IN QUEUE (FIFO HEAD)               \n");
+    printf("====================================================================\n");
+    printf(" Request ID    : #%d\n", req->request_id);
+    printf(" Item ID       : #%d\n", req->item_id);
+    printf(" Claimant Name : %s\n", req->claimant.name);
+    printf(" College USN   : %s\n", req->claimant.usn);
+    printf(" Phone Number  : %s\n", req->claimant.phone);
+    printf(" College Email : %s\n", req->claimant.email);
+    printf(" Request Date  : %s\n", req->request_date);
+    printf(" Scheduled Slot: %s, %s\n", req->visit_date, req->visit_slot);
+    printf(" Ownership Note: %s\n", req->notes);
+
+    if (strlen(req->serial_no) > 0 || strlen(req->purchase_proof) > 0) {
+        printf("--------------------------------------------------------------------\n");
+        printf(" [VERIFICATION DETAILS]:\n");
+        if (strlen(req->serial_no) > 0)
+            printf("   - Hardware Serial / IMEI : %s\n", req->serial_no);
+        if (strlen(req->purchase_proof) > 0)
+            printf("   - Purchase Proof/Invoice : %s\n", req->purchase_proof);
+    }
+    printf("====================================================================\n");
+
+    if (!item) {
+        printf("[!] Warning: Item #%d referenced in this request no longer exists in inventory.\n", req->item_id);
+        printf("Dismiss this orphaned claim request? (1: Yes, 2: No): ");
+        if (read_int_range(1, 2) == 1) {
+            ClaimRequestNode discarded;
+            queue_dequeue(&g_claim_queue, &discarded);
+            save_queue_to_file(CLAIMS_QUEUE_FILE);
+            printf("[+] Orphaned request discarded.\n");
+        }
+        return;
+    }
+
+    printf("\nTarget Item In Inventory:\n");
+    display_item_detailed(item);
+
+    printf("\nDecision for Claim Request #%d:\n", req->request_id);
+    printf("1. APPROVE & HAND OVER (Mark Item Claimed & Archive to 1-Year Database)\n");
+    printf("2. REJECT & DISMISS (Return Item to AVAILABLE status)\n");
+    printf("3. SKIP / LEAVE IN QUEUE\n");
+
+    int decision = read_int_range(1, 3);
+    if (decision == 1) {
+        ClaimRequestNode approved_req;
+        queue_dequeue(&g_claim_queue, &approved_req);
+
+        char remarks[MAX_DESC_LEN];
+        printf("Enter Admin Verification Remarks / Proof Verified (e.g. Serial matched, physical ID verified): ");
+        if (read_line(remarks, sizeof(remarks)) == 0) {
+            strncpy(remarks, "Item verified and handed over with Student ID card.", sizeof(remarks) - 1);
+        }
+
+        item->status = STATUS_CLAIMED;
+        save_inventory_to_file(ITEMS_FILE);
+
+        char visit_summary[128];
+        snprintf(visit_summary, sizeof(visit_summary), "%s, %s", approved_req.visit_date, approved_req.visit_slot);
+
+        append_claim_to_history(item, &approved_req.claimant, remarks,
+                                approved_req.serial_no, approved_req.purchase_proof,
+                                visit_summary, CLAIM_HISTORY_FILE);
+        save_queue_to_file(CLAIMS_QUEUE_FILE);
+
+        printf("\n[SUCCESS] Claim Request #%d approved! Item #%d handed over and marked CLAIMED.\n",
+               approved_req.request_id, item->id);
+    } else if (decision == 2) {
+        ClaimRequestNode rejected_req;
+        queue_dequeue(&g_claim_queue, &rejected_req);
+
+        item->status = STATUS_AVAILABLE;
+        save_inventory_to_file(ITEMS_FILE);
+        save_queue_to_file(CLAIMS_QUEUE_FILE);
+
+        printf("\n[-] Claim Request #%d has been rejected and dequeued. Item #%d restored to AVAILABLE.\n",
+               rejected_req.request_id, item->id);
+    } else {
+        printf("\n[*] Claim request left in queue for subsequent review.\n");
+    }
+}
+
+void direct_claim_walkin(void) {
+    printf("\n====================================================\n");
+    printf("       DIRECT ON-THE-SPOT CLAIM (WALK-IN)           \n");
+    printf("====================================================\n");
+
+    display_all_items(g_inventory_head, 1);
+
+    printf("\nEnter Item ID to process claim for: ");
+    char buf[64];
+    if (read_line(buf, sizeof(buf)) == 0) return;
+    int item_id = atoi(buf);
+
+    ItemNode *item = find_item_by_id(g_inventory_head, item_id);
+    if (!item) {
+        printf("[!] Item ID #%d not found in inventory.\n", item_id);
+        return;
+    }
+
+    if (item->status == STATUS_CLAIMED) {
+        printf("[!] Item #%d is ALREADY CLAIMED and disbursed!\n", item_id);
+        return;
+    }
+
+    display_item_detailed(item);
+
+    Claimant claimant;
+    memset(&claimant, 0, sizeof(claimant));
+
+    /* Claimant Name */
+    while (1) {
+        printf("Enter Claimant's Full Name: ");
+        if (read_line(claimant.name, sizeof(claimant.name)) > 0) break;
+        printf("[!] Name cannot be blank.\n");
+    }
+
+    /* College USN */
+    while (1) {
+        printf("Enter Claimant's College USN (e.g., 1RV21CS045): ");
+        if (read_line(claimant.usn, sizeof(claimant.usn)) > 0) {
+            if (validate_usn(claimant.usn)) break;
+            printf("[!] Invalid USN format. Must be alphanumeric (5-20 characters).\n");
+        }
+    }
+
+    /* Phone Number */
+    while (1) {
+        printf("Enter Claimant's Contact Phone Number: ");
+        if (read_line(claimant.phone, sizeof(claimant.phone)) > 0) {
+            if (validate_phone(claimant.phone)) break;
+            printf("[!] Invalid phone number. Must contain at least 10 digits.\n");
+        }
+    }
+
+    /* College Email Validation */
+    while (1) {
+        printf("Enter Claimant's College Email (MUST end with %s): ", COLLEGE_EMAIL_DOMAIN);
+        if (read_line(claimant.email, sizeof(claimant.email)) > 0) {
+            if (validate_college_email(claimant.email, COLLEGE_EMAIL_DOMAIN)) {
+                printf("[+] Email validated successfully!\n");
+                break;
+            } else {
+                printf("[!] INVALID EMAIL. Claimant must provide a valid college email ending with '%s'.\n",
+                       COLLEGE_EMAIL_DOMAIN);
+            }
+        }
+    }
+
+    get_current_timestamp_str(claimant.claim_date, sizeof(claimant.claim_date));
+
+    char serial_no[64] = {0};
+    char purchase_proof[128] = {0};
+
+    if (strcmp(item->category, "Electronics") == 0) {
+        printf("\nEnter Hardware Serial Number / IMEI (if applicable, or 'none'): ");
+        read_line(serial_no, sizeof(serial_no));
+        printf("Enter Purchase Invoice / Store Bill details (if available, or 'none'): ");
+        read_line(purchase_proof, sizeof(purchase_proof));
+    }
+
+    char remarks[MAX_DESC_LEN];
+    printf("\nEnter Verification Notes / Admin Remarks: ");
+    if (read_line(remarks, sizeof(remarks)) == 0) {
+        strncpy(remarks, "In-person walk-in claim. Identity verified via Student ID card.", sizeof(remarks) - 1);
+    }
+
+    item->status = STATUS_CLAIMED;
+    save_inventory_to_file(ITEMS_FILE);
+
+    append_claim_to_history(item, &claimant, remarks, serial_no, purchase_proof,
+                            "Walk-in (Immediate Handover)", CLAIM_HISTORY_FILE);
+
+    printf("\n[SUCCESS] Item #%d successfully handed over to %s (%s).\n",
+           item->id, claimant.name, claimant.usn);
+}
+
+void student_submit_claim_request(void) {
+    printf("\n====================================================\n");
+    printf("        SUBMIT A CLAIM REQUEST (STUDENT PORTAL)     \n");
+    printf("====================================================\n");
+
+    display_all_items(g_inventory_head, 1);
+
+    printf("\nEnter the Item ID you wish to claim: ");
+    char buf[64];
+    if (read_line(buf, sizeof(buf)) == 0) return;
+    int item_id = atoi(buf);
+
+    ItemNode *item = find_item_by_id(g_inventory_head, item_id);
+    if (!item) {
+        printf("[!] Item ID #%d not found in inventory.\n", item_id);
+        return;
+    }
+
+    if (item->status == STATUS_CLAIMED) {
+        printf("[!] Item #%d has already been claimed by its owner.\n", item_id);
+        return;
+    }
+
+    display_item_detailed(item);
+
+    Claimant claimant;
+    memset(&claimant, 0, sizeof(claimant));
+
+    /* Name */
+    while (1) {
+        printf("Enter Your Full Name: ");
+        if (read_line(claimant.name, sizeof(claimant.name)) > 0) break;
+        printf("[!] Name cannot be blank.\n");
+    }
+
+    /* USN */
+    while (1) {
+        printf("Enter Your College USN (e.g., 1RV21CS045): ");
+        if (read_line(claimant.usn, sizeof(claimant.usn)) > 0) {
+            if (validate_usn(claimant.usn)) break;
+            printf("[!] Invalid USN format. Must be alphanumeric (5-20 characters).\n");
+        }
+    }
+
+    /* Phone */
+    while (1) {
+        printf("Enter Your Phone Number: ");
+        if (read_line(claimant.phone, sizeof(claimant.phone)) > 0) {
+            if (validate_phone(claimant.phone)) break;
+            printf("[!] Invalid phone number. Must contain at least 10 digits.\n");
+        }
+    }
+
+    /* Email with validation */
+    while (1) {
+        printf("Enter Your College Email (MUST end with %s): ", COLLEGE_EMAIL_DOMAIN);
+        if (read_line(claimant.email, sizeof(claimant.email)) > 0) {
+            if (validate_college_email(claimant.email, COLLEGE_EMAIL_DOMAIN)) {
+                printf("[+] Email validated successfully!\n");
+                break;
+            } else {
+                printf("[!] INVALID EMAIL. Only official college email addresses ending with '%s' are permitted.\n",
+                       COLLEGE_EMAIL_DOMAIN);
+            }
+        }
+    }
+
+    get_current_timestamp_str(claimant.claim_date, sizeof(claimant.claim_date));
+
+    char serial_no[64] = {0};
+    char purchase_proof[128] = {0};
+    char notes[MAX_DESC_LEN] = {0};
+
+    if (strcmp(item->category, "Electronics") == 0) {
+        printf("\n[DEVICE OWNERSHIP DETAILS]:\n");
+        printf("Enter Hardware Serial Number / IMEI / Model (if known, or 'none'): ");
+        read_line(serial_no, sizeof(serial_no));
+        printf("Enter Proof of Purchase / Store Invoice Ref (if available, or 'none'): ");
+        read_line(purchase_proof, sizeof(purchase_proof));
+        printf("Enter Identifying Details (Wallpaper, Scratches, Markings): ");
+        read_line(notes, sizeof(notes));
+    } else {
+        printf("\nDescribe Item Characteristics / Distinct Marks to confirm ownership: ");
+        if (read_line(notes, sizeof(notes)) == 0) {
+            strncpy(notes, "Identifying details provided by student.", sizeof(notes) - 1);
+        }
+    }
+
+    /* Automated Campus Visit Scheduling */
+    char visit_date[32];
+    char visit_slot[32];
+    prompt_campus_visit_slot(visit_date, sizeof(visit_date), visit_slot, sizeof(visit_slot));
+
+    int req_id = g_next_request_id++;
+    char req_date[MAX_DATE_LEN];
+    get_current_timestamp_str(req_date, sizeof(req_date));
+
+    /* Enqueue to FIFO queue */
+    if (queue_enqueue(&g_claim_queue, req_id, item_id, &claimant, notes, req_date,
+                      visit_date, visit_slot, serial_no, purchase_proof)) {
+        item->status = STATUS_PENDING_CLAIM;
+        save_inventory_to_file(ITEMS_FILE);
+        save_queue_to_file(CLAIMS_QUEUE_FILE);
+
+        printf("\n====================================================================\n");
+        printf("           DIGITAL CAMPUS VISIT PICKUP PASS ISSUED                  \n");
+        printf("====================================================================\n");
+        printf(" Pass / Request ID : #%d\n", req_id);
+        printf(" Item Claimed      : Item #%d (%s)\n", item->id, item->name);
+        printf(" Claimant Name     : %s (USN: %s)\n", claimant.name, claimant.usn);
+        printf(" Verified Contact  : %s | %s\n", claimant.phone, claimant.email);
+        printf(" Scheduled Date    : %s\n", visit_date);
+        printf(" Scheduled Slot    : %s\n", visit_slot);
+        printf(" Queue Position    : %d in line\n", g_claim_queue.count);
+        printf(" Pickup Location   : Lost & Found Office, Central Administration Block\n");
+        printf(" Mandatory Actions : Bring Physical College ID Card to Lost & Found desk.\n");
+        printf("====================================================================\n");
+    } else {
+        printf("[ERROR] Failed to add claim request to queue.\n");
+    }
+}
+
+void student_check_claim_status(void) {
+    printf("\n====================================================\n");
+    printf("            CHECK CLAIM REQUEST STATUS              \n");
+    printf("====================================================\n");
+    printf("Enter your Request ID (e.g., 1001): ");
+
+    char buf[64];
+    if (read_line(buf, sizeof(buf)) == 0) return;
+    int req_id = atoi(buf);
+
+    ClaimRequestNode *curr = g_claim_queue.front;
+    int pos = 1;
+    while (curr) {
+        if (curr->request_id == req_id) {
+            ItemNode *item = find_item_by_id(g_inventory_head, curr->item_id);
+            printf("\n[STATUS: PENDING IN QUEUE]\n");
+            printf(" Request ID    : #%d\n", curr->request_id);
+            printf(" Item          : #%d (%s)\n", curr->item_id, item ? item->name : "Item");
+            printf(" Claimant Name : %s\n", curr->claimant.name);
+            printf(" Queue Position: %d (Out of %d pending requests)\n", pos, g_claim_queue.count);
+            printf(" Scheduled Visit: %s, %s\n", curr->visit_date, curr->visit_slot);
+            printf(" Submission Date: %s\n", curr->request_date);
+            printf(" Note: Please visit the admin desk during your reserved slot with your ID card.\n");
+            return;
+        }
+        curr = curr->next;
+        pos++;
+    }
+
+    printf("\n[*] Request ID #%d is not currently in the pending queue.\n", req_id);
+    printf("It may have already been processed and approved by the admin, or rejected.\n");
+    printf("Please contact the Lost & Found administrator for assistance.\n");
+}
+
+/* ============================================================================
+ * IMPLEMENTATION: User Interfaces & Menus
+ * ============================================================================ */
+
+void display_about_and_retention(void) {
+    printf("\n================================================================================\n");
+    printf("            ABOUT THE LOST AND FOUND SYSTEM & RETENTION POLICY                  \n");
+    printf("================================================================================\n");
+    printf("1. CORE ARCHITECTURE:\n");
+    printf("   - Singly Linked List: Dynamically manages real-time item inventory.\n");
+    printf("   - FIFO Queue: Ensures fair, sequential processing of claim requests.\n");
+    printf("   - Text File Persistence: Ensures inventory and queue persist across reboots.\n\n");
+    printf("2. ADVANCED WORKFLOW ENHANCEMENTS:\n");
+    printf("   - Scheduled Campus Visits: Automated time-slot reservation with slot quotas.\n");
+    printf("   - Multi-Criteria Search: Filter by Category, Location, and Keywords.\n\n");
+    printf("3. 1-YEAR CLAIMANT RETENTION DATABASE ('%s'):\n", CLAIM_HISTORY_FILE);
+    printf("   - Why: College assets and personal belongings carry institutional liability.\n");
+    printf("   - What: Logs claimant's full name, verified college email (%s),\n", COLLEGE_EMAIL_DOMAIN);
+    printf("     contact number, university USN, serial numbers, visit slot, and timestamps.\n");
+    printf("   - Retention Duration: Kept for 365 calendar days for audit investigations,\n");
+    printf("     dispute reconciliation, and regulatory compliance.\n");
+    printf("================================================================================\n");
+}
+
+void student_menu(void) {
+    int choice = 0;
+    while (1) {
+        printf("\n====================================================\n");
+        printf("           STUDENT PORTAL (READ-ONLY ACCESS)        \n");
+        printf("====================================================\n");
+        printf(" 1. View All Available Found Items\n");
+        printf(" 2. Search Items by Keyword / Description / Category\n");
+        printf(" 3. Filter Items by Category (Electronics, IDs, Books...)\n");
+        printf(" 4. Filter Items by Campus Location\n");
+        printf(" 5. Filter Items by Upload / Found Date\n");
+        printf(" 6. Submit a Claim Request & Schedule Visit\n");
+        printf(" 7. Track Status of My Claim Request\n");
+        printf(" 8. Switch to Admin Portal\n");
+        printf(" 9. Return to Main Menu\n");
+        printf("====================================================\n");
+
+        choice = read_int_range(1, 9);
+        switch (choice) {
+            case 1:
+                display_all_items(g_inventory_head, 1);
+                pause_console();
+                break;
+            case 2: {
+                char kw[128];
+                printf("\nEnter keyword to search (name, color, category, or location): ");
+                if (read_line(kw, sizeof(kw)) > 0) {
+                    search_items_by_keyword(g_inventory_head, kw);
+                }
+                pause_console();
+                break;
+            }
+            case 3: {
+                char cat[32];
+                prompt_category(cat, sizeof(cat));
+                filter_items_by_category(g_inventory_head, cat);
+                pause_console();
+                break;
+            }
+            case 4: {
+                printf("\nSelect campus location filter:\n");
+                printf("1. Block A\n2. Block B\n3. Block C\n4. Block D\n5. Block E\n6. Basketball Court\n7. Near Temple\n8. Entrance\n");
+                int loc_c = read_int_range(1, 8);
+                char query[64];
+                if (loc_c >= 1 && loc_c <= 5) {
+                    snprintf(query, sizeof(query), "Block %c", 'A' + (loc_c - 1));
+                } else if (loc_c == 6) {
+                    strncpy(query, "Basketball Court", sizeof(query));
+                } else if (loc_c == 7) {
+                    strncpy(query, "Near Temple", sizeof(query));
+                } else {
+                    strncpy(query, "Entrance", sizeof(query));
+                }
+                filter_items_by_location(g_inventory_head, query);
+                pause_console();
+                break;
+            }
+            case 5:
+                filter_items_by_date(g_inventory_head);
+                pause_console();
+                break;
+            case 6:
+                student_submit_claim_request();
+                pause_console();
+                break;
+            case 7:
+                student_check_claim_status();
+                pause_console();
+                break;
+            case 8: {
+                char entered_pass[MAX_PASS_LEN];
+                printf("\nEnter Admin Password (Default: %s): ", DEFAULT_ADMIN_PASSWORD);
+                read_masked_password(entered_pass, sizeof(entered_pass));
+                if (strcmp(entered_pass, g_admin_password) == 0) {
+                    printf("[+] Access Granted. Switching to Administrator Control Panel...\n");
+                    admin_menu();
+                } else {
+                    printf("[!] Authentication failed! Incorrect password.\n");
+                    pause_console();
+                }
+                break;
+            }
+            case 9:
+                return;
+            default:
+                break;
+        }
+    }
+}
+
+void admin_menu(void) {
+    int choice = 0;
+    while (1) {
+        printf("\n====================================================\n");
+        printf("           ADMINISTRATOR CONTROL PANEL              \n");
+        printf("====================================================\n");
+        printf(" 1. Add New Found Item (Register to Inventory)\n");
+        printf(" 2. View All Items in Inventory (All Statuses)\n");
+        printf(" 3. View Item Detailed Card by ID\n");
+        printf(" 4. View Pending Claim Requests Queue (FIFO)\n");
+        printf(" 5. Process Next Claim Request from Queue\n");
+        printf(" 6. Direct On-The-Spot Claim (Walk-in Handover)\n");
+        printf(" 7. View Scheduled Campus Visits Schedule\n");
+        printf(" 8. View 1-Year Claimant History Archive (%s)\n", CLAIM_HISTORY_FILE);
+        printf(" 9. Edit Found Item Details & Photo\n");
+        printf(" 10. Edit / Reschedule Pending Claim Request\n");
+        printf(" 11. Delete / Remove an Item Record\n");
+        printf(" 12. Change Admin Password\n");
+        printf(" 13. Return to Main Menu (Logout)\n");
+        printf("====================================================\n");
+
+        choice = read_int_range(1, 13);
+        switch (choice) {
+            case 1:
+                add_item();
+                pause_console();
+                break;
+            case 2:
+                display_all_items(g_inventory_head, 0);
+                pause_console();
+                break;
+            case 3: {
+                printf("\nEnter Item ID to inspect: ");
+                char buf[64];
+                if (read_line(buf, sizeof(buf)) > 0) {
+                    ItemNode *item = find_item_by_id(g_inventory_head, atoi(buf));
+                    if (item) {
+                        display_item_detailed(item);
+                    } else {
+                        printf("[!] Item not found.\n");
+                    }
+                }
+                pause_console();
+                break;
+            }
+            case 4:
+                queue_display(&g_claim_queue);
+                pause_console();
+                break;
+            case 5:
+                process_claim_from_queue();
+                pause_console();
+                break;
+            case 6:
+                direct_claim_walkin();
+                pause_console();
+                break;
+            case 7:
+                display_scheduled_campus_visits();
+                pause_console();
+                break;
+            case 8:
+                display_claim_history_file(CLAIM_HISTORY_FILE);
+                pause_console();
+                break;
+            case 9:
+                edit_item_details();
+                pause_console();
+                break;
+            case 10:
+                edit_claim_request();
+                pause_console();
+                break;
+            case 11: {
+                printf("\nEnter Item ID to permanently delete from inventory: ");
+                char buf[64];
+                if (read_line(buf, sizeof(buf)) > 0) {
+                    int del_id = atoi(buf);
+                    printf("Are you sure you want to delete Item #%d? (1: Yes, 2: Cancel): ", del_id);
+                    if (read_int_range(1, 2) == 1) {
+                        if (delete_item_by_id(&g_inventory_head, del_id)) {
+                            save_inventory_to_file(ITEMS_FILE);
+                            printf("[+] Item #%d deleted successfully.\n", del_id);
+                        } else {
+                            printf("[!] Item #%d not found.\n", del_id);
+                        }
+                    }
+                }
+                pause_console();
+                break;
+            }
+            case 12: {
+                char new_pw1[MAX_PASS_LEN], new_pw2[MAX_PASS_LEN];
+                printf("\nEnter new admin password: ");
+                read_masked_password(new_pw1, sizeof(new_pw1));
+                printf("Confirm new admin password: ");
+                read_masked_password(new_pw2, sizeof(new_pw2));
+                if (strcmp(new_pw1, new_pw2) == 0 && strlen(new_pw1) >= 4) {
+                    strncpy(g_admin_password, new_pw1, sizeof(g_admin_password) - 1);
+                    printf("[+] Admin password updated successfully for this session!\n");
+                } else {
+                    printf("[!] Passwords did not match or was under 4 characters. Not changed.\n");
+                }
+                pause_console();
+                break;
+            }
+            case 13:
+                printf("\n[*] Logging out of Admin Panel...\n");
+                return;
+            default:
+                break;
+        }
+    }
+}
+
+void main_menu(void) {
+    int choice = 0;
+    while (1) {
+        printf("\n====================================================\n");
+        printf("         COLLEGE LOST & FOUND MANAGEMENT SYSTEM     \n");
+        printf("====================================================\n");
+        printf(" 1. Student Portal (Browse, Filter & Book Claims)\n");
+        printf(" 2. Admin Portal (Password Protected)\n");
+        printf(" 3. View 1-Year Retention Policy & Architecture\n");
+        printf(" 4. Exit Application\n");
+        printf("====================================================\n");
+
+        choice = read_int_range(1, 4);
+        switch (choice) {
+            case 1:
+                student_menu();
+                break;
+            case 2: {
+                char entered_pass[MAX_PASS_LEN];
+                printf("\nEnter Admin Password (Default: %s): ", DEFAULT_ADMIN_PASSWORD);
+                read_masked_password(entered_pass, sizeof(entered_pass));
+
+                if (strcmp(entered_pass, g_admin_password) == 0) {
+                    printf("[+] Access Granted. Welcome, Administrator.\n");
+                    admin_menu();
+                } else {
+                    printf("[!] ACCESS DENIED: Incorrect password.\n");
+                    pause_console();
+                }
+                break;
+            }
+            case 3:
+                display_about_and_retention();
+                pause_console();
+                break;
+            case 4:
+                printf("\nSaving session data and exiting... Goodbye!\n");
+                save_inventory_to_file(ITEMS_FILE);
+                save_queue_to_file(CLAIMS_QUEUE_FILE);
+                return;
+            default:
+                break;
+        }
+    }
+}
+
+/* ============================================================================
+ * PROGRAM ENTRY POINT
+ * ============================================================================ */
+int main(void) {
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
+
+    printf("====================================================\n");
+    printf(" Initializing College Lost & Found System...\n");
+    printf(" Features: Scheduled Visits | Category Search       \n");
+    printf("====================================================\n");
+
+    /* Initialize in-memory queue */
+    queue_init(&g_claim_queue);
+
+    /* Load persistent data from disk */
+    load_inventory_from_file(ITEMS_FILE);
+    load_queue_from_file(CLAIMS_QUEUE_FILE);
+
+    printf("[+] Active inventory loaded successfully (%s).\n", ITEMS_FILE);
+    printf("[+] Pending claim queue loaded successfully (%s).\n", CLAIMS_QUEUE_FILE);
+
+    /* Launch interactive main interface */
+    main_menu();
+
+    /* Clean up allocated dynamic memory before termination */
+    free_inventory(&g_inventory_head);
+    queue_free(&g_claim_queue);
+
+    printf("[+] All memory safely deallocated. Exit clean.\n");
+    return 0;
+}
 
 
