@@ -727,6 +727,733 @@ void search_items_by_keyword(const ItemNode *head, const char *keyword) {
     term_lower[sizeof(term_lower) - 1] = '\0';
     for (size_t i = 0; term_lower[i]; i++) term_lower[i] = (char)tolower((unsigned char)term_lower[i]);
 
+ }
 
+    printf("\n================================================================================\n");
+    printf("             COLLEGE CLAIMANT HISTORY DATABASE (1-YEAR RETENTION)               \n");
+    printf("================================================================================\n");
+
+    char buffer[BUFFER_SIZE];
+    int line_count = 0;
+    while (fgets(buffer, sizeof(buffer), fp)) {
+        printf("%s", buffer);
+        line_count++;
+    }
+    fclose(fp); printf("\n=== SEARCH RESULTS FOR: '%s' ===\n", keyword);
+    printf("%-5s | %-22s | %-18s | %-22s | %-12s | %-13s\n",
+           "ID", "NAME", "CATEGORY", "LOCATION", "DATE", "STATUS");
+    printf("--------------------------------------------------------------------------------------------------------\n");
+
+    int found_count = 0;
+    const ItemNode *curr = head;
+    while (curr) {
+        char name_l[MAX_NAME_LEN], desc_l[MAX_DESC_LEN], loc_l[MAX_LOC_LEN], cat_l[32];
+        strncpy(name_l, curr->name, sizeof(name_l) - 1); name_l[sizeof(name_l) - 1] = '\0';
+        strncpy(desc_l, curr->description, sizeof(desc_l) - 1); desc_l[sizeof(desc_l) - 1] = '\0';
+        strncpy(loc_l, curr->location, sizeof(loc_l) - 1); loc_l[sizeof(loc_l) - 1] = '\0';
+        strncpy(cat_l, curr->category, sizeof(cat_l) - 1); cat_l[sizeof(cat_l) - 1] = '\0';
+
+        for (size_t i = 0; name_l[i]; i++) name_l[i] = (char)tolower((unsigned char)name_l[i]);
+        for (size_t i = 0; desc_l[i]; i++) desc_l[i] = (char)tolower((unsigned char)desc_l[i]);
+        for (size_t i = 0; loc_l[i]; i++) loc_l[i] = (char)tolower((unsigned char)loc_l[i]);
+        for (size_t i = 0; cat_l[i]; i++) cat_l[i] = (char)tolower((unsigned char)cat_l[i]);
+
+        if (strstr(name_l, term_lower) || strstr(desc_l, term_lower) ||
+            strstr(loc_l, term_lower) || strstr(cat_l, term_lower)) {
+            printf("#%-4d | %-22.22s | %-18.18s | %-22.22s | %-12.12s | %-13s\n",
+                   curr->id, curr->name, curr->category,
+                   curr->location, curr->date_found, status_to_string(curr->status));
+            found_count++;
+        }
+        curr = curr->next;
+    }
+
+    printf("--------------------------------------------------------------------------------------------------------\n");
+    printf("Found %d matching item(s).\n", found_count);
+}
+
+void filter_items_by_category(const ItemNode *head, const char *cat_query) {
+    if (!head || !cat_query) return;
+
+    printf("\n=== ITEMS FILTERED BY CATEGORY: '%s' ===\n", cat_query);
+    printf("%-5s | %-22s | %-18s | %-22s | %-12s | %-13s\n",
+           "ID", "NAME", "CATEGORY", "LOCATION", "DATE", "STATUS");
+    printf("--------------------------------------------------------------------------------------------------------\n");
+
+    int count = 0;
+    const ItemNode *curr = head;
+    while (curr) {
+        if (strcmp(curr->category, cat_query) == 0) {
+            printf("#%-4d | %-22.22s | %-18.18s | %-22.22s | %-12.12s | %-13s\n",
+                   curr->id, curr->name, curr->category,
+                   curr->location, curr->date_found, status_to_string(curr->status));
+            count++;
+        }
+        curr = curr->next;
+    }
+
+    printf("--------------------------------------------------------------------------------------------------------\n");
+    printf("Total items in '%s': %d\n", cat_query, count);
+}
+
+void filter_items_by_location(const ItemNode *head, const char *loc_query) {
+    if (!head || !loc_query) return;
+
+    printf("\n=== ITEMS FILTERED BY LOCATION: '%s' ===\n", loc_query);
+    printf("%-5s | %-22s | %-18s | %-22s | %-12s | %-13s\n",
+           "ID", "NAME", "CATEGORY", "LOCATION", "DATE", "STATUS");
+    printf("--------------------------------------------------------------------------------------------------------\n");
+
+    int count = 0;
+    const ItemNode *curr = head;
+    while (curr) {
+        if (strstr(curr->location, loc_query) != NULL) {
+            printf("#%-4d | %-22.22s | %-18.18s | %-22.22s | %-12.12s | %-13s\n",
+                   curr->id, curr->name, curr->category,
+                   curr->location, curr->date_found, status_to_string(curr->status));
+            count++;
+        }
+        curr = curr->next;
+    }
+
+    printf("--------------------------------------------------------------------------------------------------------\n");
+    printf("Matches in '%s': %d\n", loc_query, count);
+}
+
+void filter_items_by_date(const ItemNode *head) {
+    if (!head) {
+        printf("\n[!] Inventory is empty.\n");
+        return;
+    }
+
+    printf("\n====================================================\n");
+    printf("         FILTER ITEMS BY UPLOAD / FOUND DATE        \n");
+    printf("====================================================\n");
+    printf(" 1. Uploaded Today (2026-11-16)\n");
+    printf(" 2. Uploaded in Past 3 Days\n");
+    printf(" 3. Uploaded in Past 7 Days\n");
+    printf(" 4. Filter by Specific Date (YYYY-MM-DD)\n");
+    printf("====================================================\n");
+    int opt = read_int_range(1, 4);
+
+    char target_date[32] = {0};
+    char today_str[32];
+    get_current_date_str(today_str, sizeof(today_str));
+
+    if (opt == 1) {
+        strncpy(target_date, today_str, sizeof(target_date) - 1);
+    } else if (opt == 4) {
+        printf("\nEnter Specific Date (YYYY-MM-DD): ");
+        read_line(target_date, sizeof(target_date));
+    }
+
+    printf("\n=== MATCHING ITEMS BY DATE FILTER ===\n");
+    printf("%-5s | %-20s | %-16s | %-18s | %-11s | %-11s | %-11s\n",
+           "ID", "NAME", "CATEGORY", "LOCATION", "FOUND DATE", "POSTED DATE", "STATUS");
+    printf("---------------------------------------------------------------------------------------------------------------\n");
+
+    int count = 0;
+    const ItemNode *curr = head;
+    while (curr) {
+        int match = 0;
+        const char *item_date = strlen(curr->date_posted) > 0 ? curr->date_posted : curr->date_found;
+
+        if (opt == 1 || opt == 4) {
+            if (strcmp(item_date, target_date) == 0 || strcmp(curr->date_found, target_date) == 0) {
+                match = 1;
+            }
+        } else if (opt == 2) {
+            if (strcmp(item_date, "2026-11-16") == 0 || strcmp(item_date, "2026-11-15") == 0 ||
+                strcmp(item_date, "2026-11-14") == 0 || strcmp(item_date, today_str) == 0) {
+                match = 1;
+            }
+        } else if (opt == 3) {
+            if (strcmp(item_date, "2026-11-09") >= 0) {
+                match = 1;
+            }
+        }
+
+        if (match) {
+            printf("#%-4d | %-20.20s | %-16.16s | %-18.18s | %-11.11s | %-11.11s | %-11s\n",
+                   curr->id, curr->name, curr->category,
+                   curr->location, curr->date_found, curr->date_posted, status_to_string(curr->status));
+            count++;
+        }
+        curr = curr->next;
+    }
+
+    printf("---------------------------------------------------------------------------------------------------------------\n");
+    printf("Total items matching date filter: %d\n", count);
+}
+
+void free_inventory(ItemNode **head_ref) {
+    if (!head_ref) return;
+    ItemNode *curr = *head_ref;
+    while (curr) {
+        ItemNode *temp = curr;
+        curr = curr->next;
+        free(temp);
+    }
+    *head_ref = NULL;
+}
+
+/* ============================================================================
+ * IMPLEMENTATION: Queue Operations (Claim Requests Waiting List)
+ * ============================================================================ */
+
+void queue_init(ClaimQueue *q) {
+    if (!q) return;
+    q->front = NULL;
+    q->rear = NULL;
+    q->count = 0;
+}
+
+int queue_enqueue(ClaimQueue *q, int req_id, int item_id, const Claimant *claimant,
+                   const char *notes, const char *req_date, const char *visit_date,
+                   const char *visit_slot, const char *serial_no, const char *purchase_proof) {
+    if (!q || !claimant) return 0;
+
+    ClaimRequestNode *node = (ClaimRequestNode*)malloc(sizeof(ClaimRequestNode));
+    if (!node) {
+        fprintf(stderr, "[ERROR] Memory allocation failed for ClaimRequestNode!\n");
+        return 0;
+    }
+
+    node->request_id = req_id;
+    node->item_id = item_id;
+    node->claimant = *claimant;
+
+    strncpy(node->notes, notes ? notes : "", sizeof(node->notes) - 1);
+    node->notes[sizeof(node->notes) - 1] = '\0';
+
+    strncpy(node->request_date, req_date ? req_date : "N/A", sizeof(node->request_date) - 1);
+    node->request_date[sizeof(node->request_date) - 1] = '\0';
+
+    strncpy(node->visit_date, visit_date ? visit_date : "", sizeof(node->visit_date) - 1);
+    node->visit_date[sizeof(node->visit_date) - 1] = '\0';
+
+    strncpy(node->visit_slot, visit_slot ? visit_slot : "", sizeof(node->visit_slot) - 1);
+    node->visit_slot[sizeof(node->visit_slot) - 1] = '\0';
+
+    strncpy(node->serial_no, serial_no ? serial_no : "", sizeof(node->serial_no) - 1);
+    node->serial_no[sizeof(node->serial_no) - 1] = '\0';
+
+    strncpy(node->purchase_proof, purchase_proof ? purchase_proof : "", sizeof(node->purchase_proof) - 1);
+    node->purchase_proof[sizeof(node->purchase_proof) - 1] = '\0';
+
+    node->next = NULL;
+
+    if (q->rear == NULL) {
+        q->front = node;
+        q->rear = node;
+    } else {
+        q->rear->next = node;
+        q->rear = node;
+    }
+    q->count++;
+    return 1;
+}
+
+int queue_dequeue(ClaimQueue *q, ClaimRequestNode *out_node) {
+    if (!q || q->front == NULL) return 0;
+
+    ClaimRequestNode *temp = q->front;
+    if (out_node) {
+        *out_node = *temp;
+        out_node->next = NULL;
+    }
+
+    q->front = q->front->next;
+    if (q->front == NULL) {
+        q->rear = NULL;
+    }
+    q->count--;
+
+    free(temp);
+    return 1;
+}
+
+void queue_display(const ClaimQueue *q) {
+    if (!q || q->count == 0) {
+        printf("\n[*] The Claim Requests Waiting Queue is currently empty. No pending claims.\n");
+        return;
+    }
+
+    printf("\n========================================================================================================\n");
+    printf("             PENDING CLAIM REQUESTS QUEUE (FIFO WAITING LIST - %d TOTAL)                                 \n", q->count);
+    printf("========================================================================================================\n");
+    printf("%-7s | %-7s | %-20s | %-14s | %-12s | %-22s\n",
+           "REQ ID", "ITEM ID", "CLAIMANT NAME", "USN", "VISIT DATE", "VISIT TIME SLOT");
+    printf("--------------------------------------------------------------------------------------------------------\n");
+
+    const ClaimRequestNode *curr = q->front;
+    int pos = 1;
+    while (curr) {
+        printf("#%-6d | #%-6d | %-20.20s | %-14.14s | %-12.12s | %-22.22s (Pos: %d)\n",
+               curr->request_id, curr->item_id, curr->claimant.name,
+               curr->claimant.usn, curr->visit_date, curr->visit_slot, pos++);
+        curr = curr->next;
+    }
+    printf("========================================================================================================\n");
+}
+
+ClaimRequestNode* queue_find_by_req_id(const ClaimQueue *q, int req_id) {
+    if (!q) return NULL;
+    ClaimRequestNode *curr = q->front;
+    while (curr) {
+        if (curr->request_id == req_id) return curr;
+        curr = curr->next;
+    }
+    return NULL;
+}
+
+void queue_free(ClaimQueue *q) {
+    if (!q) return;
+    ClaimRequestNode *curr = q->front;
+    while (curr) {
+        ClaimRequestNode *temp = curr;
+        curr = curr->next;
+        free(temp);
+    }
+    q->front = NULL;
+    q->rear = NULL;
+    q->count = 0;
+}
+
+/* ============================================================================
+ * IMPLEMENTATION: File I/O & 1-Year Retention Database Operations
+ * ============================================================================ */
+
+void load_inventory_from_file(const char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) return;
+
+    free_inventory(&g_inventory_head);
+    char line[BUFFER_SIZE * 2];
+    int max_id = 100;
+
+    while (fgets(line, sizeof(line), fp)) {
+        trim_whitespace(line);
+        if (strlen(line) == 0 || line[0] == '#') continue;
+
+        int id = 0, st_int = 0;
+        char name[MAX_NAME_LEN] = {0};
+        char desc[MAX_DESC_LEN] = {0};
+        char loc[MAX_LOC_LEN] = {0};
+        char img[MAX_PATH_LEN] = {0};
+        char date[MAX_DATE_LEN] = {0};
+        char cat[32] = {0};
+        char tier[16] = {0};
+
+        char *token = strtok(line, "|");
+        if (token) id = atoi(token);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(name, token, sizeof(name) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(desc, token, sizeof(desc) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(loc, token, sizeof(loc) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(img, token, sizeof(img) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(date, token, sizeof(date) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) st_int = atoi(token);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(cat, token, sizeof(cat) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(tier, token, sizeof(tier) - 1);
+
+        char date_posted[MAX_DATE_LEN] = {0};
+        token = strtok(NULL, "|");
+        if (token) {
+            strncpy(date_posted, token, sizeof(date_posted) - 1);
+        } else {
+            strncpy(date_posted, date, sizeof(date_posted) - 1);
+        }
+
+        /* Defaults if missing */
+        if (strlen(cat) == 0) strcpy(cat, "Other");
+        if (strlen(tier) == 0) strcpy(tier, "LOW");
+
+        if (id > 0) {
+            ItemNode *node = create_item_node(id, name, desc, loc, img, date, date_posted, (ItemStatus)st_int, cat, tier);
+            insert_item_sorted(&g_inventory_head, node);
+            if (id > max_id) max_id = id;
+        }
+    }
+    fclose(fp);
+    g_next_item_id = max_id + 1;
+}
+
+void save_inventory_to_file(const char *filename) {
+    FILE *fp = fopen(filename, "w");
+    if (!fp) {
+        fprintf(stderr, "[ERROR] Cannot open '%s' for writing inventory!\n", filename);
+        return;
+    }
+
+    fprintf(fp, "# ID|NAME|DESCRIPTION|LOCATION|IMAGE_PATH|DATE_FOUND|STATUS|CATEGORY|VALUE_TIER|DATE_POSTED\n");
+    ItemNode *curr = g_inventory_head;
+    while (curr) {
+        fprintf(fp, "%d|%s|%s|%s|%s|%s|%d|%s|%s|%s\n",
+                curr->id, curr->name, curr->description, curr->location,
+                curr->image_path, curr->date_found, (int)curr->status,
+                curr->category, curr->value_tier, curr->date_posted);
+        curr = curr->next;
+    }
+    fclose(fp);
+}
+
+void load_queue_from_file(const char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) return;
+
+    queue_free(&g_claim_queue);
+    char line[BUFFER_SIZE * 2];
+    int max_req = 1000;
+
+    while (fgets(line, sizeof(line), fp)) {
+        trim_whitespace(line);
+        if (strlen(line) == 0 || line[0] == '#') continue;
+
+        int req_id = 0, item_id = 0;
+        Claimant c = {0};
+        char notes[MAX_DESC_LEN] = {0};
+        char req_date[MAX_DATE_LEN] = {0};
+        char visit_date[32] = {0};
+        char visit_slot[32] = {0};
+        char serial_no[64] = {0};
+        char purchase_proof[128] = {0};
+
+        char *token = strtok(line, "|");
+        if (token) req_id = atoi(token);
+
+        token = strtok(NULL, "|");
+        if (token) item_id = atoi(token);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(c.name, token, sizeof(c.name) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(c.usn, token, sizeof(c.usn) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(c.phone, token, sizeof(c.phone) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(c.email, token, sizeof(c.email) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(c.claim_date, token, sizeof(c.claim_date) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(notes, token, sizeof(notes) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(req_date, token, sizeof(req_date) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(visit_date, token, sizeof(visit_date) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(visit_slot, token, sizeof(visit_slot) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(serial_no, token, sizeof(serial_no) - 1);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(purchase_proof, token, sizeof(purchase_proof) - 1);
+
+        if (req_id > 0 && item_id > 0) {
+            queue_enqueue(&g_claim_queue, req_id, item_id, &c, notes, req_date,
+                          visit_date, visit_slot, serial_no, purchase_proof);
+            if (req_id > max_req) max_req = req_id;
+        }
+    }
+    fclose(fp);
+    g_next_request_id = max_req + 1;
+}
+
+void save_queue_to_file(const char *filename) {
+    FILE *fp = fopen(filename, "w");
+    if (!fp) {
+        fprintf(stderr, "[ERROR] Cannot open '%s' for saving queue!\n", filename);
+        return;
+    }
+
+    fprintf(fp, "# REQ_ID|ITEM_ID|CLAIMANT_NAME|USN|PHONE|EMAIL|CLAIM_DATE|NOTES|REQ_DATE|VISIT_DATE|VISIT_SLOT|SERIAL_NO|PURCHASE_PROOF\n");
+    ClaimRequestNode *curr = g_claim_queue.front;
+    while (curr) {
+        fprintf(fp, "%d|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s\n",
+                curr->request_id, curr->item_id, curr->claimant.name,
+                curr->claimant.usn, curr->claimant.phone, curr->claimant.email,
+                curr->claimant.claim_date, curr->notes, curr->request_date,
+                curr->visit_date, curr->visit_slot, curr->serial_no, curr->purchase_proof);
+        curr = curr->next;
+    }
+    fclose(fp);
+}
+
+void append_claim_to_history(const ItemNode *item, const Claimant *claimant,
+                             const char *action_notes, const char *serial_no,
+                             const char *purchase_proof, const char *visit_info,
+                             const char *filename) {
+    if (!item || !claimant) return;
+
+    FILE *fp = fopen(filename, "a");
+    if (!fp) {
+        fprintf(stderr, "[ERROR] Unable to open Claim History file '%s' for appending!\n", filename);
+        return;
+    }
+
+    char current_time[MAX_DATE_LEN];
+    get_current_timestamp_str(current_time, sizeof(current_time));
+
+    fprintf(fp, "================================================================================\n");
+    fprintf(fp, "TRANSACTION RECORD: CLAIM & DISBURSEMENT AUDIT LOG\n");
+    fprintf(fp, "Log Timestamp       : %s\n", current_time);
+    fprintf(fp, "[RETENTION POLICY]  : Retain this record for 1-Year (365 days) from log date.\n");
+    fprintf(fp, "--------------------------------------------------------------------------------\n");
+    fprintf(fp, "ITEM INFORMATION:\n");
+    fprintf(fp, "  - Item ID         : #%d\n", item->id);
+    fprintf(fp, "  - Item Name       : %s\n", item->name);
+    fprintf(fp, "  - Category        : %s\n", item->category);
+    fprintf(fp, "  - Description     : %s\n", item->description);
+    fprintf(fp, "  - Found Location  : %s\n", item->location);
+    fprintf(fp, "  - Date Found      : %s\n", item->date_found);
+    fprintf(fp, "  - Image Path      : %s\n", item->image_path);
+    fprintf(fp, "CLAIMANT DETAILS (BORROWER / RECIPIENT):\n");
+    fprintf(fp, "  - Full Name       : %s\n", claimant->name);
+    fprintf(fp, "  - College USN     : %s\n", claimant->usn);
+    fprintf(fp, "  - Contact Phone   : %s\n", claimant->phone);
+    fprintf(fp, "  - Verified Email  : %s\n", claimant->email);
+    fprintf(fp, "  - Claim Timestamp : %s\n", claimant->claim_date);
+
+    if ((serial_no && strlen(serial_no) > 0) || (purchase_proof && strlen(purchase_proof) > 0)) {
+        fprintf(fp, "VERIFICATION DETAILS:\n");
+        if (serial_no && strlen(serial_no) > 0)
+            fprintf(fp, "  - Hardware Serial : %s\n", serial_no);
+        if (purchase_proof && strlen(purchase_proof) > 0)
+            fprintf(fp, "  - Purchase Proof  : %s\n", purchase_proof);
+    }
+
+    if (visit_info && strlen(visit_info) > 0) {
+        fprintf(fp, "SCHEDULED CAMPUS VISIT:\n");
+        fprintf(fp, "  - Pickup Slot     : %s\n", visit_info);
+    }
+
+    fprintf(fp, "OFFICE VERIFICATION:\n");
+    fprintf(fp, "  - Handover Status : CLAIMED & VERIFIED BY ADMIN\n");
+    fprintf(fp, "  - Admin Remarks   : %s\n", (action_notes && strlen(action_notes) > 0) ? action_notes : "Identity and ownership verified in person.");
+    fprintf(fp, "================================================================================\n\n");
+
+    fclose(fp);
+    printf("[+] Claimant history permanently written to '%s' (1-Year Retention Archive).\n", filename);
+}
+
+void display_claim_history_file(const char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        printf("\n[*] No claim history recorded yet. The file '%s' is empty.\n", filename);
+        return;
+
+    if (line_count == 0) {
+        printf("[*] The claim history archive is currently empty.\n");
+    }
+    printf("================================================================================\n");
+}
+
+void display_scheduled_campus_visits(void) {
+    printf("\n================================================================================\n");
+    printf("                 SCHEDULED CAMPUS VISITS (ADMIN DESK SCHEDULE)                  \n");
+    printf("================================================================================\n");
+
+    if (g_claim_queue.count == 0) {
+        printf("[*] No upcoming campus visits scheduled at this time.\n");
+        printf("================================================================================\n");
+        return;
+    }
+
+    printf("%-12s | %-22s | %-8s | %-18s | %-12s | %s\n",
+           "VISIT DATE", "TIME SLOT", "REQ ID", "STUDENT NAME", "USN", "ITEM");
+    printf("--------------------------------------------------------------------------------\n");
+
+    ClaimRequestNode *curr = g_claim_queue.front;
+    int visit_count = 0;
+    while (curr) {
+        if (strlen(curr->visit_date) > 0) {
+            ItemNode *item = find_item_by_id(g_inventory_head, curr->item_id);
+            const char *item_name = item ? item->name : "Item";
+            printf("%-12.12s | %-22.22s | #%-7d | %-18.18s | %-12.12s | %s\n",
+                   curr->visit_date, curr->visit_slot, curr->request_id,
+                   curr->claimant.name, curr->claimant.usn, item_name);
+            visit_count++;
+        }
+        curr = curr->next;
+    }
+
+    if (visit_count == 0) {
+        printf("[*] No visits scheduled with specific dates.\n");
+    }
+    printf("--------------------------------------------------------------------------------\n");
+    printf("Total Scheduled Visits: %d\n", visit_count);
+    printf("================================================================================\n");
+}
+
+/* ============================================================================
+ * IMPLEMENTATION: Core Sub-system Operations
+ * ============================================================================ */
+
+void add_item(void) {
+    printf("\n====================================================\n");
+    printf("              ADD NEW FOUND ITEM (ADMIN)            \n");
+    printf("====================================================\n");
+
+    char name[MAX_NAME_LEN];
+    char desc[MAX_DESC_LEN];
+    char location[MAX_LOC_LEN];
+    char image_path[MAX_PATH_LEN];
+    char date_found[MAX_DATE_LEN];
+    char category[32];
+    char value_tier[16];
+
+    /* Item Name */
+    while (1) {
+        printf("Enter Item Name (e.g. Blue Titan Watch, Water Bottle): ");
+        if (read_line(name, sizeof(name)) > 0) break;
+        printf("[!] Item name cannot be blank.\n");
+    }
+
+    /* Category */
+    prompt_category(category, sizeof(category));
+    printf("[+] Category selected: %s\n", category);
+
+    if (strcmp(category, "Electronics") == 0) {
+        strncpy(value_tier, "HIGH", sizeof(value_tier) - 1);
+    } else {
+        strncpy(value_tier, "LOW", sizeof(value_tier) - 1);
+    }
+    value_tier[sizeof(value_tier) - 1] = '\0';
+
+    /* Description */
+    while (1) {
+        printf("\nEnter Item Description (Color, Brand, Markings, Condition): ");
+        if (read_line(desc, sizeof(desc)) > 0) break;
+        printf("[!] Description cannot be blank.\n");
+    }
+
+    /* Location Sub-Menu */
+    prompt_location(location, sizeof(location));
+    printf("[+] Location set to: %s\n", location);
+
+    /* Image File Path */
+    printf("\nEnter Image File Path (e.g., C:/images/watch.jpg or 'none'): ");
+    if (read_line(image_path, sizeof(image_path)) == 0) {
+        strncpy(image_path, "None", sizeof(image_path) - 1);
+    }
+
+    /* Date Found (Defaults to today's date) */
+    char default_date[MAX_DATE_LEN];
+    get_current_date_str(default_date, sizeof(default_date));
+    printf("Enter Date Found [Press Enter for today: %s] (YYYY-MM-DD): ", default_date);
+    if (read_line(date_found, sizeof(date_found)) == 0) {
+        strncpy(date_found, default_date, sizeof(date_found) - 1);
+    }
+
+    char date_posted[MAX_DATE_LEN];
+    printf("Enter Date Uploaded to Website [Press Enter for today: %s] (YYYY-MM-DD): ", default_date);
+    if (read_line(date_posted, sizeof(date_posted)) == 0) {
+        strncpy(date_posted, default_date, sizeof(date_posted) - 1);
+    }
+
+    int new_id = g_next_item_id++;
+    ItemNode *new_node = create_item_node(new_id, name, desc, location,
+                                          image_path, date_found, date_posted, STATUS_AVAILABLE,
+                                          category, value_tier);
+
+    insert_item_sorted(&g_inventory_head, new_node);
+    save_inventory_to_file(ITEMS_FILE);
+
+    printf("\n[SUCCESS] Item #%d ('%s') successfully logged into inventory!\n", new_id, name);
+    display_item_detailed(new_node);
+}
+
+void edit_item_details(void) {
+    printf("\n====================================================\n");
+    printf("              EDIT FOUND ITEM (ADMIN)               \n");
+    printf("====================================================\n");
+    if (!g_inventory_head) {
+        printf("[!] Inventory is currently empty.\n");
+        return;
+    }
+
+    display_all_items(g_inventory_head, 0);
+    printf("\nEnter Item ID to Edit: ");
+    int id = 0;
+    char id_buf[32];
+    if (read_line(id_buf, sizeof(id_buf)) == 0 || (id = atoi(id_buf)) <= 0) {
+        printf("[!] Invalid Item ID.\n");
+        return;
+    }
+
+    ItemNode *item = find_item_by_id(g_inventory_head, id);
+    if (!item) {
+        printf("[!] Item #%d not found in inventory.\n", id);
+        return;
+    }
+
+    printf("\nEditing Item #%d:\n", item->id);
+    display_item_detailed(item);
+
+    char input[MAX_DESC_LEN];
+
+    printf("\nEnter New Name [Press Enter to keep '%s']: ", item->name);
+    if (read_line(input, sizeof(input)) > 0) {
+        strncpy(item->name, input, sizeof(item->name) - 1);
+    }
+
+    printf("Do you want to update category (Current: %s)? (1 = Yes, 2 = No): ", item->category);
+    int cat_c = read_int_range(1, 2);
+    if (cat_c == 1) {
+        prompt_category(item->category, sizeof(item->category));
+    }
+
+    printf("Enter New Description [Press Enter to keep current]: ");
+    if (read_line(input, sizeof(input)) > 0) {
+        strncpy(item->description, input, sizeof(item->description) - 1);
+    }
+
+    printf("Do you want to update location (Current: %s)? (1 = Yes, 2 = No): ", item->location);
+    int loc_c = read_int_range(1, 2);
+    if (loc_c == 1) {
+        prompt_location(item->location, sizeof(item->location));
+    }
+
+    printf("Enter New Image Path [Press Enter to keep '%s']: ", item->image_path);
+    if (read_line(input, sizeof(input)) > 0) {
+        strncpy(item->image_path, input, sizeof(item->image_path) - 1);
+    }
+
+    printf("Enter Date Found [Press Enter to keep '%s'] (YYYY-MM-DD): ", item->date_found);
+    if (read_line(input, sizeof(input)) > 0) {
+        strncpy(item->date_found, input, sizeof(item->date_found) - 1);
+    }
+
+    printf("Enter Date Uploaded [Press Enter to keep '%s'] (YYYY-MM-DD): ", item->date_posted);
+    if (read_line(input, sizeof(input)) > 0) {
+        strncpy(item->date_posted, input, sizeof(item->date_posted) - 1);
+    }
+
+    printf("\nUpdate Item Status? (1 = AVAILABLE, 2 = PENDING CLAIM, 3 = CLAIMED, 4 = Keep '%s'): ", status_to_string(item->status));
+    int st_c = read_int_range(1, 4);
 
 
