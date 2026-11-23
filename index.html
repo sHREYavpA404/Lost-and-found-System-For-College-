@@ -1,0 +1,2783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>College Lost and Found Management System</title>
+  <!-- Tailwind CSS -->
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* Custom scrollbars and styling */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.025em;
+    }
+    .slot-pill:hover {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.1);
+    }
+    .slot-pill.selected {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.2);
+      color: #ffffff;
+      box-shadow: 0 0 0 1px #6366f1;
+    }
+    .category-chip.active {
+      background: #4f46e5;
+      color: #ffffff;
+      border-color: #6366f1;
+    }
+    .image-dropzone.dragover {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-slate-800 bg-slate-900/90 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo & Title -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchPortal('landing')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300">Campus Lost &amp; Found</span>
+          <span class="hidden sm:inline-block ml-2 px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-800 text-slate-400 border border-slate-700">Official Portal</span>
+        </div>
+      </div>
+
+      <!-- Center & Right Nav Tabs -->
+      <nav class="flex items-center space-x-1 sm:space-x-2">
+        <button id="nav-landing" onclick="switchPortal('landing')" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-slate-800 flex items-center space-x-1.5">
+          <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          <span>Home</span>
+        </button>
+
+        <button id="nav-track" onclick="openTrackModal()" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center space-x-1.5">
+          <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+          <span>Track My Claim</span>
+        </button>
+
+        <button id="nav-switch-admin" onclick="switchPortal('admin')" class="px-3 py-1.5 rounded-lg text-sm font-medium text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-all flex items-center space-x-1.5">
+          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          <span>Switch to Admin</span>
+        </button>
+
+        <button id="nav-switch-student" onclick="switchPortal('student')" class="hidden px-3 py-1.5 rounded-lg text-sm font-medium text-indigo-300 hover:text-white bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all flex items-center space-x-1.5">
+          <span>🎓</span>
+          <span>Switch to Student</span>
+        </button>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ===================================================================== -->
+    <!-- 0. FRONT PAGE (LOGIN SELECTION)                                       -->
+    <!-- ===================================================================== -->
+    <section id="portal-landing" class="max-w-xl mx-auto my-16 px-4 space-y-8">
+      
+      <!-- Minimal Brand Header -->
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-xl shadow-indigo-500/20 mx-auto mb-4">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <h1 class="text-3xl font-extrabold text-white tracking-tight">
+          Campus Lost &amp; Found
+        </h1>
+        <p class="text-sm text-slate-400">
+          Select login portal to continue
+        </p>
+      </div>
+
+      <!-- Login Options Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        
+        <!-- Student Login Card -->
+        <button 
+          onclick="switchPortal('student')" 
+          class="bg-slate-900 border border-slate-800 hover:border-indigo-500 rounded-2xl p-6 sm:p-8 flex flex-col items-center text-center space-y-4 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-200 group cursor-pointer focus:outline-none"
+        >
+          <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+            🎓
+          </div>
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-white group-hover:text-indigo-300 transition-colors">
+              Student Login
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">
+              Browse items &amp; claim
+            </p>
+          </div>
+          <span class="w-full py-2.5 bg-indigo-600 group-hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-colors shadow-md shadow-indigo-600/20">
+            Login as Student &rarr;
+          </span>
+        </button>
+
+        <!-- Admin Login Card -->
+        <button 
+          onclick="switchPortal('admin')" 
+          class="bg-slate-900 border border-slate-800 hover:border-amber-500 rounded-2xl p-6 sm:p-8 flex flex-col items-center text-center space-y-4 hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-200 group cursor-pointer focus:outline-none"
+        >
+          <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+            🔐
+          </div>
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-white group-hover:text-amber-300 transition-colors">
+              Admin Login
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">
+              Staff &amp; inventory control
+            </p>
+          </div>
+          <span class="w-full py-2.5 bg-amber-600 group-hover:bg-amber-500 text-white rounded-xl text-xs font-semibold transition-colors shadow-md shadow-amber-600/20">
+            Login as Admin &rarr;
+          </span>
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 1. STUDENT PORTAL VIEW                                                -->
+    <!-- ===================================================================== -->
+    <section id="portal-student" class="hidden space-y-6">
+      
+      <!-- Top banner & quick actions -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <button onclick="switchPortal('landing')" class="text-xs font-semibold text-slate-400 hover:text-white flex items-center space-x-1.5 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Home</span>
+          </button>
+          <span class="text-slate-700">|</span>
+          <button onclick="openTrackModal()" class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Track My Claim</span>
+          </button>
+        </div>
+        <button onclick="switchPortal('admin')" class="text-xs font-semibold text-amber-300 hover:text-white flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-colors">
+          <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          <span>Switch to Admin</span>
+        </button>
+      </div>
+
+      <!-- Hero / Welcome Header -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 p-6 sm:p-8">
+        <div class="relative z-10 max-w-3xl">
+          <div class="flex flex-wrap gap-2 mb-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              📅 Scheduled Campus Visits
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              🖼️ High-Res Photo Inspection
+            </span>
+          </div>
+          <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Lost Something On Campus?
+          </h1>
+          <p class="mt-2 text-sm sm:text-base text-slate-300">
+            Browse currently found belongings across all campus blocks and grounds. Review actual photographs, filter by category or date uploaded, and book a convenient pickup visit slot.
+          </p>
+        </div>
+      </div>
+
+      <!-- Category Quick Chips Bar -->
+      <div class="flex items-center space-x-2 overflow-x-auto pb-2 text-xs scrollbar-none">
+        <span class="text-slate-500 font-semibold uppercase tracking-wider text-[11px] whitespace-nowrap pl-1">Categories:</span>
+        <button onclick="setCategoryFilter('')" id="cat-chip-all" class="category-chip active px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition-all whitespace-nowrap flex items-center space-x-1.5">
+          <span>All Items</span>
+          <span id="badge-cat-all" class="px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/30 text-indigo-200">0</span>
+        </button>
+        <button onclick="setCategoryFilter('Electronics')" id="cat-chip-electronics" class="category-chip px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition-all whitespace-nowrap flex items-center space-x-1.5">
+          <span>💻 Electronics</span>
+          <span id="badge-cat-electronics" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-400">0</span>
+        </button>
+        <button onclick="setCategoryFilter('IDs & Cards')" id="cat-chip-ids" class="category-chip px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition-all whitespace-nowrap flex items-center space-x-1.5">
+          <span>🪪 IDs &amp; Cards</span>
+          <span id="badge-cat-ids" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-400">0</span>
+        </button>
+        <button onclick="setCategoryFilter('Books & Stationery')" id="cat-chip-books" class="category-chip px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition-all whitespace-nowrap flex items-center space-x-1.5">
+          <span>📚 Books &amp; Stationery</span>
+          <span id="badge-cat-books" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-400">0</span>
+        </button>
+        <button onclick="setCategoryFilter('Bags & Bottles')" id="cat-chip-bags" class="category-chip px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition-all whitespace-nowrap flex items-center space-x-1.5">
+          <span>🎒 Bags &amp; Bottles</span>
+          <span id="badge-cat-bags" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-400">0</span>
+        </button>
+        <button onclick="setCategoryFilter('Personal Accessories')" id="cat-chip-accessories" class="category-chip px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition-all whitespace-nowrap flex items-center space-x-1.5">
+          <span>☂️ Accessories &amp; Umbrellas</span>
+          <span id="badge-cat-accessories" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-400">0</span>
+        </button>
+      </div>
+
+      <!-- Filters & Search Toolbar (With New Date Filter) -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between shadow-sm">
+        
+        <!-- Keyword Search -->
+        <div class="relative flex-1">
+          <svg class="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input 
+            type="text" 
+            id="student-search-input" 
+            oninput="filterItems()" 
+            placeholder="Search keywords, brand, color, location..." 
+            class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+          />
+        </div>
+
+        <!-- Filter Controls (Location, Date, Status) -->
+        <div class="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+          
+          <!-- Location Filter Dropdown -->
+          <div class="w-full sm:w-auto">
+            <select 
+              id="student-location-filter" 
+              onchange="filterItems()" 
+              class="w-full sm:w-36 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition-all"
+            >
+              <option value="">All Locations</option>
+              <option value="Block A">Block A</option>
+              <option value="Block B">Block B</option>
+              <option value="Block C">Block C</option>
+              <option value="Block D">Block D</option>
+              <option value="Block E">Block E</option>
+              <option value="Basketball Court">Basketball Court</option>
+              <option value="Near Temple">Near Temple</option>
+              <option value="Entrance">Entrance</option>
+            </select>
+          </div>
+
+          <!-- Date Filter Dropdown -->
+          <div class="w-full sm:w-auto flex items-center space-x-1">
+            <select 
+              id="student-date-filter" 
+              onchange="handleDateFilterChange()" 
+              class="w-full sm:w-36 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition-all"
+            >
+              <option value="ALL">All Dates</option>
+              <option value="TODAY">Uploaded Today</option>
+              <option value="3DAYS">Past 3 Days</option>
+              <option value="WEEK">Past 7 Days</option>
+              <option value="MONTH">Past 30 Days</option>
+              <option value="CUSTOM">Specific Date...</option>
+            </select>
+            <input 
+              type="date" 
+              id="student-custom-date" 
+              onchange="filterItems()" 
+              class="hidden px-2.5 py-1.5 bg-slate-950 border border-indigo-500/50 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <!-- Status Filter -->
+          <div class="w-full sm:w-auto">
+            <select 
+              id="student-status-filter" 
+              onchange="filterItems()" 
+              class="w-full sm:w-36 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition-all"
+            >
+              <option value="AVAILABLE">Available Only</option>
+              <option value="ALL">All Items</option>
+              <option value="PENDING CLAIM">Pending Claims</option>
+            </select>
+          </div>
+
+          <button onclick="refreshData()" class="p-2 text-slate-400 hover:text-white bg-slate-950 border border-slate-800 rounded-lg hover:border-slate-700 transition-all" title="Reload Inventory">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Items Grid Display (Featuring Real Images) -->
+      <div id="items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Rendered dynamically by JavaScript -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="hidden text-center py-16 bg-slate-900/50 rounded-2xl border border-dashed border-slate-800">
+        <svg class="w-16 h-16 mx-auto text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="text-lg font-semibold text-slate-300">No matching items found</h3>
+        <p class="text-sm text-slate-500 max-w-sm mx-auto mt-1">Try selecting a different category, campus location, or upload date filter.</p>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 2. ADMIN PORTAL VIEW (Password Protected)                             -->
+    <!-- ===================================================================== -->
+    <section id="portal-admin" class="hidden space-y-6">
+      
+      <!-- Top breadcrumb & quick switch -->
+      <div class="flex items-center justify-between">
+        <button onclick="switchPortal('landing')" class="text-xs font-semibold text-slate-400 hover:text-white flex items-center space-x-1.5 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span>Home</span>
+        </button>
+        <button onclick="switchPortal('student')" class="text-xs font-semibold text-indigo-300 hover:text-white flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
+          <span>🎓</span>
+          <span>Switch to Student</span>
+        </button>
+      </div>
+
+      <!-- Admin Login Overlay if not authenticated -->
+      <div id="admin-auth-view" class="max-w-md mx-auto my-12 bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+        <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-center text-white">Administrator Access</h2>
+        <p class="text-xs text-center text-slate-400 mt-1 mb-6">Authorized college personnel only.</p>
+        
+        <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Admin Security Password</label>
+            <input 
+              type="password" 
+              id="admin-password-input" 
+              required 
+              placeholder="Enter admin password..."
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          <div id="admin-auth-error" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded p-2 text-center">
+            Incorrect password. Access denied.
+          </div>
+          <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition-all shadow-md shadow-indigo-600/30">
+            Authenticate &amp; Open Dashboard
+          </button>
+        </form>
+      </div>
+
+      <!-- Admin Authenticated Dashboard -->
+      <div id="admin-dashboard-view" class="hidden space-y-6">
+        
+        <!-- Header Bar -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 class="text-xl font-bold text-white">Admin Control Center</h2>
+              <span class="px-2 py-0.5 text-xs font-semibold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Authorized Session</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">Manage inventory with photo uploads, edit claims &amp; appointments, and oversee 1-year retention records.</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="handleAdminLogout()" class="px-3 py-1.5 bg-slate-950 hover:bg-rose-950/40 text-slate-300 hover:text-rose-400 border border-slate-800 hover:border-rose-900/50 rounded-lg text-xs font-semibold transition-all">
+              Lock / Logout
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs font-medium text-slate-400">Total Registered</span>
+            <div id="kpi-total-items" class="text-2xl font-black text-white mt-1">0</div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs font-medium text-emerald-400">Available Items</span>
+            <div id="kpi-avail-items" class="text-2xl font-black text-emerald-400 mt-1">0</div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs font-medium text-slate-400">Reunited / Claimed</span>
+            <div id="kpi-claimed-items" class="text-2xl font-black text-slate-300 mt-1">0</div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <span class="text-xs font-medium text-indigo-400">Claims in Queue</span>
+            <div id="kpi-queue-count" class="text-2xl font-black text-indigo-400 mt-1">0</div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
+            <span class="text-xs font-medium text-violet-400">📅 Scheduled Visits</span>
+            <div id="kpi-visits-count" class="text-2xl font-black text-violet-400 mt-1">0</div>
+          </div>
+        </div>
+
+        <!-- Admin Sub-Navigation Tabs -->
+        <div class="border-b border-slate-800 flex space-x-3 overflow-x-auto">
+          <button id="tab-btn-add" onclick="switchAdminTab('add')" class="pb-3 text-sm font-semibold border-b-2 border-indigo-500 text-white whitespace-nowrap">
+            + Add Found Item
+          </button>
+          <button id="tab-btn-queue" onclick="switchAdminTab('queue')" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+            <span>Review Claims Queue</span>
+            <span id="queue-badge-count" class="px-1.5 py-0.2 rounded-full text-xs bg-amber-500 text-slate-950 font-bold">0</span>
+          </button>
+          <button id="tab-btn-visits" onclick="switchAdminTab('visits')" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+            <span>📅 Scheduled Campus Visits</span>
+            <span id="visits-badge-count" class="px-1.5 py-0.2 rounded-full text-xs bg-indigo-500 text-white font-bold">0</span>
+          </button>
+          <button id="tab-btn-history" onclick="switchAdminTab('history')" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap">
+            1-Year Retention Archive
+          </button>
+          <button id="tab-btn-manage" onclick="switchAdminTab('manage')" class="pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap">
+            All Inventory &amp; Editing
+          </button>
+        </div>
+
+        <!-- TAB 1: ADD ITEM FORM WITH ACTUAL PHOTO UPLOAD -->
+        <div id="admin-tab-add" class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <h3 class="text-lg font-bold text-white mb-1">Register New Found Item</h3>
+          <p class="text-xs text-slate-400 mb-6">Enter item details, upload an actual image file for students to review, and record the campus location.</p>
+          
+          <form onsubmit="handleAddItemSubmit(event)" class="space-y-4 max-w-2xl">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Item Name *</label>
+              <input type="text" id="add-item-name" required placeholder="e.g. Apple MacBook Air M2, Milton Steel Bottle, College ID..." class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+            </div>
+
+            <!-- Category Selection -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Item Category *</label>
+              <select id="add-item-category" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                <option value="Electronics">💻 Electronics (Laptops, Phones, Watches, Headphones)</option>
+                <option value="IDs & Cards">🪪 IDs &amp; Cards (College IDs, Bank Cards, Wallets)</option>
+                <option value="Books & Stationery">📚 Books &amp; Stationery (Notebooks, Textbooks, Calculators)</option>
+                <option value="Bags & Bottles">🎒 Bags &amp; Bottles (Backpacks, Flasks, Sippers)</option>
+                <option value="Personal Accessories">☂️ Personal Accessories (Umbrellas, Keys, Eyeglasses)</option>
+                <option value="Other">📦 Other Items</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Detailed Description *</label>
+              <textarea id="add-item-desc" required rows="2.5" placeholder="Brand, markings, color, condition, distinct stickers or identifiers..." class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+
+            <!-- Location Selection with Sub-Menu Logic -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Campus Location Found *</label>
+                <select id="add-item-loc-type" onchange="toggleRoomInput()" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                  <option value="">Select Location Category...</option>
+                  <option value="Block A">Block A</option>
+                  <option value="Block B">Block B</option>
+                  <option value="Block C">Block C</option>
+                  <option value="Block D">Block D</option>
+                  <option value="Block E">Block E</option>
+                  <option value="Basketball Court">Basketball Court</option>
+                  <option value="Near Temple">Near Temple</option>
+                  <option value="Entrance">Entrance</option>
+                </select>
+              </div>
+
+              <!-- Conditional Room Number Input -->
+              <div id="room-input-container" class="hidden">
+                <label class="block text-xs font-medium text-indigo-300 mb-1">Room / Lab Number *</label>
+                <input type="text" id="add-item-room-no" placeholder="e.g. 204, 301-B, Physics Lab 2..." class="w-full px-3.5 py-2 bg-slate-950 border border-indigo-500/50 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+            </div>
+
+            <!-- Dates (Date Found & Date Posted) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Date Found on Campus</label>
+                <input type="date" id="add-item-date" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Date Uploaded to Website</label>
+                <input type="date" id="add-item-date-posted" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+            </div>
+
+            <!-- ACTUAL IMAGE FILE UPLOAD COMPONENT -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">
+                Actual Item Image (Upload File from Device)
+              </label>
+              <div 
+                id="image-dropzone" 
+                class="border-2 border-dashed border-slate-800 hover:border-indigo-500 rounded-xl p-4 text-center cursor-pointer bg-slate-950/60 transition-colors"
+                onclick="document.getElementById('add-item-file').click()"
+              >
+                <input 
+                  type="file" 
+                  id="add-item-file" 
+                  accept="image/*" 
+                  class="hidden" 
+                  onchange="handleImageFileSelected(this)" 
+                />
+                <div id="upload-placeholder" class="space-y-1">
+                  <svg class="w-8 h-8 text-indigo-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                  <p class="text-xs text-slate-300 font-semibold">Click to browse or drop an image file here</p>
+                  <p class="text-[11px] text-slate-500">Supports JPG, PNG, WEBP — students will be able to inspect this photo</p>
+                </div>
+
+                <!-- Preview container -->
+                <div id="upload-preview-container" class="hidden relative inline-block mt-2">
+                  <img id="upload-preview-img" src="" alt="Item Preview" class="h-36 w-auto max-w-full rounded-lg object-cover border border-slate-700 shadow-md mx-auto" />
+                  <button 
+                    type="button" 
+                    onclick="event.stopPropagation(); removeUploadedImage()" 
+                    class="absolute -top-2 -right-2 bg-rose-600 hover:bg-rose-500 text-white rounded-full p-1 text-xs shadow"
+                    title="Remove Image"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <input type="hidden" id="add-item-image-base64" />
+            </div>
+
+            <div class="pt-2">
+              <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold transition-all shadow-md shadow-indigo-600/30">
+                + Register Item into Inventory
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- TAB 2: CLAIM REQUESTS QUEUE (FIFO) WITH CLAIM EDITING -->
+        <div id="admin-tab-queue" class="hidden space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-lg font-bold text-white">Pending Claim Requests</h3>
+                <p class="text-xs text-slate-400">Review pending claim requests in order of receipt. Edit claims or appointment slots anytime.</p>
+              </div>
+              <span class="text-xs font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded border border-slate-800">
+                Sequential FIFO Queue
+              </span>
+            </div>
+
+            <div id="admin-queue-list" class="space-y-3">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: SCHEDULED CAMPUS VISITS -->
+        <div id="admin-tab-visits" class="hidden space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+              <div>
+                <h3 class="text-lg font-bold text-white">📅 Scheduled Campus Visits Agenda</h3>
+                <p class="text-xs text-slate-400">Real-time schedule of students booked to visit the Lost &amp; Found office for handover.</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="date" id="admin-visits-filter-date" onchange="renderAdminVisits()" class="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500" />
+                <button onclick="renderAdminVisits(true)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium">Show All Upcoming</button>
+              </div>
+            </div>
+
+            <!-- Visits Timeline/Grid -->
+            <div id="admin-visits-agenda" class="space-y-4">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: 1-YEAR CLAIMANT RETENTION DATABASE -->
+        <div id="admin-tab-history" class="hidden space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <h3 class="text-lg font-bold text-white">1-Year Claimant History Database</h3>
+                  <span class="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Audit Archive</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">Permanent record for verified college claim history, audit trails, and scheduled visits (365-day retention).</p>
+              </div>
+            </div>
+
+            <!-- History Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th class="py-3 px-3">Log Time</th>
+                    <th class="py-3 px-3">Item Details</th>
+                    <th class="py-3 px-3">Claimant Info</th>
+                    <th class="py-3 px-3">Verification Details</th>
+                    <th class="py-3 px-3">Scheduled Visit</th>
+                    <th class="py-3 px-3">Admin Remarks</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-history-tbody" class="divide-y divide-slate-800/60 font-mono">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: ALL INVENTORY MANAGEMENT & EDITING -->
+        <div id="admin-tab-manage" class="hidden space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-lg font-bold text-white">Full Inventory Directory</h3>
+                <p class="text-xs text-slate-400">Search, inspect, edit item details/photos, and manage active items.</p>
+              </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th class="py-3 px-3">ID</th>
+                    <th class="py-3 px-3">Photo</th>
+                    <th class="py-3 px-3">Item Name</th>
+                    <th class="py-3 px-3">Category</th>
+                    <th class="py-3 px-3">Location</th>
+                    <th class="py-3 px-3">Date Found</th>
+                    <th class="py-3 px-3">Date Uploaded</th>
+                    <th class="py-3 px-3">Status</th>
+                    <th class="py-3 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-manage-tbody" class="divide-y divide-slate-800/60">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: IMAGE LIGHTBOX VIEWER (Students & Admins)                       -->
+  <!-- ===================================================================== -->
+  <div id="image-lightbox-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md hidden animate-in fade-in duration-150">
+    <div class="relative bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 id="lightbox-title" class="text-base sm:text-lg font-bold text-white">Item Image</h3>
+          <p id="lightbox-subtitle" class="text-xs text-slate-400"></p>
+        </div>
+        <button onclick="closeLightboxModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center max-h-[65vh]">
+        <img id="lightbox-img" src="" alt="High resolution item preview" class="w-full h-auto max-h-[65vh] object-contain" />
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
+        <span id="lightbox-details"></span>
+        <button onclick="closeLightboxModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold">
+          Close Preview
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: EDIT ITEM (Admin)                                              -->
+  <!-- ===================================================================== -->
+  <div id="edit-item-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-white">Edit Found Item</h3>
+          <p class="text-xs text-slate-400" id="edit-item-modal-id">Item #101</p>
+        </div>
+        <button onclick="closeEditItemModal()" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+
+      <form onsubmit="handleEditItemSubmit(event)" class="space-y-4">
+        <input type="hidden" id="edit-item-id" />
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Item Name *</label>
+          <input type="text" id="edit-item-name" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Category *</label>
+          <select id="edit-item-category" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+            <option value="Electronics">💻 Electronics</option>
+            <option value="IDs & Cards">🪪 IDs &amp; Cards</option>
+            <option value="Books & Stationery">📚 Books &amp; Stationery</option>
+            <option value="Bags & Bottles">🎒 Bags &amp; Bottles</option>
+            <option value="Personal Accessories">☂️ Personal Accessories</option>
+            <option value="Other">📦 Other Items</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Description *</label>
+          <textarea id="edit-item-desc" required rows="2" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Location Details *</label>
+            <input type="text" id="edit-item-location" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Status</label>
+            <select id="edit-item-status" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="AVAILABLE">AVAILABLE</option>
+              <option value="PENDING CLAIM">PENDING CLAIM</option>
+              <option value="CLAIMED">CLAIMED</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Date Found</label>
+            <input type="date" id="edit-item-date" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Date Uploaded</label>
+            <input type="date" id="edit-item-date-posted" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+
+        <!-- Edit Photo -->
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Replace or Update Image</label>
+          <div class="flex items-center space-x-3">
+            <input type="file" id="edit-item-file" accept="image/*" onchange="handleEditImageSelected(this)" class="text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700" />
+            <input type="hidden" id="edit-item-image-base64" />
+          </div>
+          <div id="edit-preview-box" class="mt-2">
+            <img id="edit-preview-img" src="" alt="Item photo preview" class="h-20 w-auto rounded border border-slate-800 object-cover" />
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeEditItemModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: EDIT CLAIM (Admin)                                             -->
+  <!-- ===================================================================== -->
+  <div id="edit-claim-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-white">Edit Claim &amp; Appointment</h3>
+          <p class="text-xs text-slate-400" id="edit-claim-modal-id">Request #1001</p>
+        </div>
+        <button onclick="closeEditClaimModal()" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+
+      <form onsubmit="handleEditClaimSubmit(event)" class="space-y-4">
+        <input type="hidden" id="edit-claim-req-id" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Claimant Name *</label>
+            <input type="text" id="edit-claim-name" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Claimant USN *</label>
+            <input type="text" id="edit-claim-usn" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Phone *</label>
+            <input type="text" id="edit-claim-phone" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">College Email *</label>
+            <input type="email" id="edit-claim-email" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Scheduled Visit Date</label>
+            <input type="date" id="edit-claim-visit-date" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Scheduled Visit Time Slot</label>
+            <select id="edit-claim-visit-slot" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+              <option value="09:30 AM - 10:00 AM">09:30 AM - 10:00 AM</option>
+              <option value="10:30 AM - 11:00 AM">10:30 AM - 11:00 AM</option>
+              <option value="11:30 AM - 12:00 PM">11:30 AM - 12:00 PM</option>
+              <option value="02:00 PM - 02:30 PM">02:00 PM - 02:30 PM</option>
+              <option value="03:00 PM - 03:30 PM">03:00 PM - 03:30 PM</option>
+              <option value="04:00 PM - 04:30 PM">04:00 PM - 04:30 PM</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Serial Number / IMEI</label>
+            <input type="text" id="edit-claim-serial" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Invoice / Receipt Proof</label>
+            <input type="text" id="edit-claim-invoice" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Claimant Notes / Distinguishing Marks</label>
+          <textarea id="edit-claim-notes" rows="2" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeEditClaimModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">Save Claim Updates</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: SUBMIT CLAIM REQUEST (Student Portal)                           -->
+  <!-- ===================================================================== -->
+  <div id="claim-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 my-8 animate-in fade-in zoom-in duration-150">
+      
+      <div class="flex items-start justify-between border-b border-slate-800 pb-3">
+        <div>
+          <div class="flex items-center space-x-2">
+            <h3 class="text-lg font-bold text-white">Submit Claim Request</h3>
+            <span id="modal-item-tier-badge"></span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Item: <span id="modal-item-title" class="font-semibold text-indigo-400">#101</span></p>
+        </div>
+        <button onclick="closeClaimModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form onsubmit="handleClaimFormSubmit(event)" class="space-y-4">
+        <input type="hidden" id="modal-item-id" />
+        <input type="hidden" id="modal-item-tier" />
+
+        <div id="modal-tier-notice" class="p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 text-slate-300 text-xs">
+          Please fill in your details below and reserve a campus visit time slot to collect your item.
+        </div>
+
+        <!-- Student Basic Details -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Your Full Name *</label>
+            <input type="text" id="claim-name" required placeholder="e.g. Shreya Sharma" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">University USN *</label>
+            <input type="text" id="claim-usn" required placeholder="e.g. 1RV21CS089" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Contact Phone *</label>
+            <input type="tel" id="claim-phone" required placeholder="e.g. 9876543210" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">
+              College Email ID * 
+              <span class="text-amber-400 font-normal">(@college.edu)</span>
+            </label>
+            <input 
+              type="email" 
+              id="claim-email" 
+              required 
+              oninput="validateEmailField(this)" 
+              placeholder="e.g. student.cs21@college.edu" 
+              class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" 
+            />
+            <div id="email-feedback" class="text-[11px] mt-1 hidden"></div>
+          </div>
+        </div>
+
+        <!-- Device Verification Fields (Electronics) -->
+        <div id="high-value-fields-container" class="space-y-3 p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl hidden">
+          <div class="flex items-center space-x-1.5 text-indigo-300 font-semibold text-xs mb-1">
+            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Device Verification (Electronics)</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-300 mb-1">Hardware Serial / IMEI / Model (if known)</label>
+              <input type="text" id="claim-serial-no" placeholder="e.g. SN: DLX8948123 or IMEI: 359124..." class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-300 mb-1">Proof of Purchase / Invoice (if available)</label>
+              <input type="text" id="claim-purchase-proof" placeholder="e.g. Amazon Invoice #8849, Store Bill..." class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-indigo-500" />
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400">Note: Please bring your college ID and be prepared to unlock the device during handover.</p>
+        </div>
+
+        <!-- Identifying Notes -->
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1" id="notes-label">Proof of Ownership / Distinguishing Marks *</label>
+          <textarea id="claim-notes" required rows="2" placeholder="Mention identifying features, scratches, stickers, wallpaper, or unique details..." class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- SCHEDULED CAMPUS VISITS MODULE                                -->
+        <!-- ============================================================= -->
+        <div class="pt-2 border-t border-slate-800 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-1.5">
+              <span class="text-base">📅</span>
+              <span class="text-xs font-bold text-white">Book a Scheduled Campus Visit</span>
+            </div>
+            <span class="text-[11px] text-indigo-400 font-medium">Real-Time Office Availability</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Select Visit Date *</label>
+              <input type="date" id="claim-visit-date" onchange="loadVisitSlotsForDate()" required class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-[11px] text-slate-400 mb-1">Available 30-Min Time Slots *</label>
+              <div id="slots-container" class="grid grid-cols-2 gap-1.5">
+                <!-- Slot cards rendered dynamically -->
+              </div>
+              <input type="hidden" id="selected-visit-slot" required />
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-500 flex items-center justify-between pt-1">
+            <span>📍 Venue: Lost &amp; Found Central Desk, Block A - Room 101</span>
+            <span id="slot-quota-status" class="text-slate-400 font-mono"></span>
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeClaimModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold">Cancel</button>
+          <button type="submit" id="submit-claim-btn" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-all shadow-md shadow-indigo-600/30">Submit Claim &amp; Schedule Visit</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: DIGITAL CAMPUS VISIT PICKUP PASS                                -->
+  <!-- ===================================================================== -->
+  <div id="visit-pass-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="text-center border-b border-slate-800 pb-3">
+        <div class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
+          ✓
+        </div>
+        <h3 class="text-lg font-extrabold text-white">Campus Visit Pass Confirmed</h3>
+        <p class="text-xs text-slate-400">Appointment booked at Lost &amp; Found Central Desk</p>
+      </div>
+
+      <div id="visit-pass-content" class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5 text-xs text-slate-300">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="window.print()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold">Print / Save PDF</button>
+        <button onclick="closeVisitPassModal()" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: VERIFICATION AUDIT CHECKLIST (Admin Handover)                   -->
+  <!-- ===================================================================== -->
+  <div id="security-audit-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-start justify-between border-b border-slate-800 pb-3">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-indigo-400 text-lg">📋</span>
+            <h3 class="text-lg font-bold text-white">Item Handover Verification Checklist</h3>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Confirm verification criteria before approving handover</p>
+        </div>
+        <button onclick="closeSecurityAuditModal()" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+
+      <div id="security-audit-details" class="space-y-3 text-xs">
+        <!-- Dynamic audit details -->
+      </div>
+
+      <form onsubmit="handleSecurityApprovalConfirm(event)" class="space-y-3 pt-2 border-t border-slate-800">
+        <input type="hidden" id="audit-req-id" />
+        <div class="space-y-2">
+          <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
+            <input type="checkbox" id="chk-serial-match" required class="rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-0" />
+            <span>Hardware Serial Number / Unique Identifier matches</span>
+          </label>
+          <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
+            <input type="checkbox" id="chk-invoice-match" required class="rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-0" />
+            <span>Distinguishing marks / photos inspected and verified</span>
+          </label>
+          <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
+            <input type="checkbox" id="chk-id-match" required class="rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-0" />
+            <span>Physical College Student ID Card and USN verified</span>
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">Administrator Audit Remarks *</label>
+          <input type="text" id="audit-remarks" required placeholder="e.g. Serial # matched, student ID checked, device unlocked live" class="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-indigo-500" />
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="closeSecurityAuditModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold">Confirm Audit &amp; Complete Handover</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: TRACK MY CLAIM                                                 -->
+  <!-- ===================================================================== -->
+  <div id="track-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-lg font-bold text-white">Track Claim &amp; Visit Status</h3>
+        <button onclick="closeTrackModal()" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+
+      <div class="space-y-3">
+        <label class="block text-xs font-medium text-slate-300">Enter Your Claim Request ID</label>
+        <div class="flex space-x-2">
+          <input type="number" id="track-input-id" placeholder="e.g. 1001" class="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+          <button onclick="handleTrackLookup()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold">Lookup</button>
+        </div>
+
+        <div id="track-result-box" class="hidden mt-3 p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2 text-xs">
+          <!-- Dynamic track status -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script>
+    /* Configuration */
+    const COLLEGE_DOMAIN = "@college.edu";
+    const API_BASE = "http://localhost:8080/api";
+    let isConnectedToCServer = false;
+    let isAdminLoggedIn = false;
+    let currentPortal = "landing";
+
+    /* Available 30-min campus appointment slots */
+    const AVAILABLE_SLOTS = [
+      "09:30 AM - 10:00 AM",
+      "10:30 AM - 11:00 AM",
+      "11:30 AM - 12:00 PM",
+      "02:00 PM - 02:30 PM",
+      "03:00 PM - 03:30 PM",
+      "04:00 PM - 04:30 PM"
+    ];
+    const SLOT_CAPACITY = 3;
+
+    /* In-Memory Local State */
+    let inventoryList = [];
+    let claimQueue = [];
+    let claimHistory = [];
+    let currentCategoryFilter = "";
+
+    // Default sample items with realistic high-resolution images & upload dates
+    const defaultSampleItems = [
+      {
+        id: 101,
+        name: "Titan Blue Watch",
+        category: "Electronics",
+        value_tier: "HIGH",
+        description: "Dark blue leather strap, round silver dial, scratch on bezel.",
+        location: "Block B, Room 204",
+        image_path: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80",
+        date_found: "2026-10-05",
+        date_posted: "2026-10-06",
+        status: "CLAIMED"
+      },
+      {
+        id: 102,
+        name: "Scientific Calculator Casio FX-991EX",
+        category: "Books & Stationery",
+        value_tier: "LOW",
+        description: "Black casing with sticker 'SS' on the protective slip cover.",
+        location: "Basketball Court",
+        image_path: "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?w=600&auto=format&fit=crop&q=80",
+        date_found: "2026-11-14",
+        date_posted: "2026-11-14",
+        status: "PENDING CLAIM"
+      },
+      {
+        id: 103,
+        name: "Dell Inspiron 15 Laptop",
+        category: "Electronics",
+        value_tier: "HIGH",
+        description: "Silver finish, Intel Core i7, university sticker on lid.",
+        location: "Block A, Room 304",
+        image_path: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80",
+        date_found: "2026-11-15",
+        date_posted: "2026-11-15",
+        status: "AVAILABLE"
+      },
+      {
+        id: 104,
+        name: "Milton Stainless Steel Water Bottle",
+        category: "Bags & Bottles",
+        value_tier: "LOW",
+        description: "750ml matte black insulated flask with silver cap.",
+        location: "Basketball Court",
+        image_path: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=600&auto=format&fit=crop&q=80",
+        date_found: "2026-11-15",
+        date_posted: "2026-11-16",
+        status: "AVAILABLE"
+      },
+      {
+        id: 105,
+        name: "College Student ID Card",
+        category: "IDs & Cards",
+        value_tier: "LOW",
+        description: "Name: Rahul Verma, Dept of Computer Science & Engineering.",
+        location: "Near Temple",
+        image_path: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80",
+        date_found: "2026-11-15",
+        date_posted: "2026-11-16",
+        status: "AVAILABLE"
+      },
+      {
+        id: 106,
+        name: "Black Folding Umbrella",
+        category: "Personal Accessories",
+        value_tier: "LOW",
+        description: "Compact automatic open-close with wooden curved handle.",
+        location: "Entrance",
+        image_path: "https://images.unsplash.com/photo-1534353436294-0dbd4bdac845?w=600&auto=format&fit=crop&q=80",
+        date_found: "2026-11-16",
+        date_posted: "2026-11-16",
+        status: "AVAILABLE"
+      },
+      {
+        id: 107,
+        name: "Data Structures & Algorithms Hardcover",
+        category: "Books & Stationery",
+        value_tier: "LOW",
+        description: "CLRS hardcover edition with notes on chapters 4 and 5.",
+        location: "Block C, Room 102",
+        image_path: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80",
+        date_found: "2026-11-16",
+        date_posted: "2026-11-16",
+        status: "AVAILABLE"
+      },
+      {
+        id: 108,
+        name: "Apple iPhone 13 128GB",
+        category: "Electronics",
+        value_tier: "HIGH",
+        description: "Midnight Blue color, transparent case with student bus pass.",
+        location: "Block D, Room 201",
+        image_path: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&auto=format&fit=crop&q=80",
+        date_found: "2026-11-16",
+        date_posted: "2026-11-16",
+        status: "AVAILABLE"
+      }
+    ];
+
+    /* Initialize Application */
+    window.addEventListener("DOMContentLoaded", async () => {
+      // Set today's date in add item form
+      const today = new Date().toISOString().split("T")[0];
+      const dateFoundInput = document.getElementById("add-item-date");
+      const datePostedInput = document.getElementById("add-item-date-posted");
+      if (dateFoundInput) dateFoundInput.value = today;
+      if (datePostedInput) datePostedInput.value = today;
+
+      // Setup drag and drop for image upload
+      setupDropzone();
+
+      await checkBackendConnection();
+      await loadAllData();
+      updateKpis();
+      updateCategoryCounts();
+      
+      // Default to landing page
+      switchPortal('landing');
+    });
+
+    /* Check C Backend Server Connectivity */
+    async function checkBackendConnection() {
+      try {
+        const res = await fetch(`${API_BASE}/health`, { method: "GET", mode: "cors" });
+        if (res.ok) {
+          isConnectedToCServer = true;
+          return;
+        }
+      } catch (err) {}
+      isConnectedToCServer = false;
+    }
+
+    /* Load Data either from C Server or LocalStorage */
+    async function loadAllData() {
+      if (isConnectedToCServer) {
+        try {
+          const res = await fetch(`${API_BASE}/items`);
+          inventoryList = await res.json();
+          const qRes = await fetch(`${API_BASE}/claims`);
+          claimQueue = await qRes.json();
+          const hRes = await fetch(`${API_BASE}/history`);
+          claimHistory = await hRes.json();
+          return;
+        } catch (e) {
+          console.warn("Failed fetching from server, falling back to local store", e);
+        }
+      }
+
+      // Local storage fallback
+      const storedItems = localStorage.getItem("c_lostfound_items_v3");
+      inventoryList = storedItems ? JSON.parse(storedItems) : [...defaultSampleItems];
+
+      // Ensure every item has a date_posted
+      inventoryList.forEach(item => {
+        if (!item.date_posted) {
+          item.date_posted = item.date_found || "2026-11-16";
+        }
+      });
+
+      const storedQueue = localStorage.getItem("c_lostfound_queue_v3");
+      claimQueue = storedQueue ? JSON.parse(storedQueue) : [
+        {
+          request_id: 1001,
+          item_id: 102,
+          claimant: {
+            name: "Aryan Kumar",
+            usn: "1RV21CS012",
+            phone: "9876543211",
+            email: "aryan@college.edu",
+            claim_date: "2026-11-16 10:15:00"
+          },
+          notes: "Has my initials SS engraved on back cover",
+          request_date: "2026-11-16 10:15:00",
+          visit_date: "2026-11-17",
+          visit_slot: "10:30 AM - 11:00 AM",
+          serial_no: "",
+          purchase_proof: "",
+          item: {
+            name: "Scientific Calculator Casio FX-991EX",
+            category: "Books & Stationery",
+            value_tier: "LOW",
+            location: "Basketball Court"
+          }
+        }
+      ];
+
+      const storedHist = localStorage.getItem("c_lostfound_history_v3");
+      claimHistory = storedHist ? JSON.parse(storedHist) : [
+        {
+          log_time: "2026-10-06 17:58:13",
+          item_id: 101,
+          item_name: "Titan Blue Watch",
+          category: "Electronics",
+          value_tier: "HIGH",
+          location: "Block B, Room 204",
+          claimant: {
+            name: "Sam Sharma",
+            usn: "NB25CSC111",
+            phone: "9876543210",
+            email: "sam@college.edu"
+          },
+          serial_no: "SN: TT-90248-BLU",
+          purchase_proof: "Titan World Store Receipt #TW-4481",
+          pickup_slot: "2026-10-06, 11:30 AM - 12:00 PM",
+          remarks: "Student ID verified physically with original purchase bill and serial number match"
+        }
+      ];
+    }
+
+    function saveLocalData() {
+      if (!isConnectedToCServer) {
+        localStorage.setItem("c_lostfound_items_v3", JSON.stringify(inventoryList));
+        localStorage.setItem("c_lostfound_queue_v3", JSON.stringify(claimQueue));
+        localStorage.setItem("c_lostfound_history_v3", JSON.stringify(claimHistory));
+      }
+    }
+
+    /* Portal Switching (Landing, Student, Admin) */
+    function switchPortal(portal) {
+      currentPortal = portal;
+      const landingSec = document.getElementById("portal-landing");
+      const studentSec = document.getElementById("portal-student");
+      const adminSec = document.getElementById("portal-admin");
+      
+      const navLanding = document.getElementById("nav-landing");
+      const navTrack = document.getElementById("nav-track");
+      const navSwitchAdmin = document.getElementById("nav-switch-admin");
+      const navSwitchStudent = document.getElementById("nav-switch-student");
+
+      // Hide all portals first
+      landingSec.classList.add("hidden");
+      studentSec.classList.add("hidden");
+      adminSec.classList.add("hidden");
+
+      // Reset nav button classes
+      const inactiveClass = "px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center space-x-1.5";
+      const activeClass = "px-3 py-1.5 rounded-lg text-sm font-semibold transition-all text-white bg-indigo-600 shadow-sm shadow-indigo-600/30 flex items-center space-x-1.5";
+      
+      if (navLanding) navLanding.className = inactiveClass;
+      if (navTrack) navTrack.className = inactiveClass;
+
+      if (portal === 'landing') {
+        landingSec.classList.remove("hidden");
+        if (navLanding) navLanding.className = activeClass;
+        if (navTrack) navTrack.classList.remove("hidden");
+        if (navSwitchAdmin) navSwitchAdmin.classList.add("hidden");
+        if (navSwitchStudent) navSwitchStudent.classList.add("hidden");
+        updateLandingStats();
+      } else if (portal === 'student') {
+        studentSec.classList.remove("hidden");
+        if (navLanding) navLanding.className = inactiveClass;
+        if (navTrack) navTrack.classList.remove("hidden");
+        if (navSwitchAdmin) navSwitchAdmin.classList.remove("hidden");
+        if (navSwitchStudent) navSwitchStudent.classList.add("hidden");
+        filterItems();
+      } else if (portal === 'admin') {
+        adminSec.classList.remove("hidden");
+        if (navLanding) navLanding.className = inactiveClass;
+        if (navTrack) navTrack.classList.add("hidden");
+        if (navSwitchAdmin) navSwitchAdmin.classList.add("hidden");
+        if (navSwitchStudent) navSwitchStudent.classList.remove("hidden");
+        
+        if (isAdminLoggedIn) {
+          showAdminDashboard();
+        } else {
+          document.getElementById("admin-auth-view").classList.remove("hidden");
+          document.getElementById("admin-dashboard-view").classList.add("hidden");
+        }
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateLandingStats() {
+      const el = document.getElementById("landing-stat-total");
+      if (!el) return;
+      const total = inventoryList.length;
+      const avail = inventoryList.filter(i => i.status === "AVAILABLE").length;
+      const claimed = inventoryList.filter(i => i.status === "CLAIMED").length;
+      const visits = claimQueue.filter(q => q.visit_date && q.visit_slot).length;
+
+      el.innerText = total;
+      const elAvail = document.getElementById("landing-stat-avail");
+      if (elAvail) elAvail.innerText = avail;
+      const elClaimed = document.getElementById("landing-stat-claimed");
+      if (elClaimed) elClaimed.innerText = claimed;
+      const elVisits = document.getElementById("landing-stat-visits");
+      if (elVisits) elVisits.innerText = visits;
+    }
+
+    /* Admin Authentication */
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const pwInput = document.getElementById("admin-password-input");
+      const errBox = document.getElementById("admin-auth-error");
+
+      if (isConnectedToCServer) {
+        try {
+          const res = await fetch(`${API_BASE}/admin/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: pwInput.value })
+          });
+          if (res.ok) {
+            isAdminLoggedIn = true;
+            errBox.classList.add("hidden");
+            pwInput.value = "";
+            showAdminDashboard();
+            return;
+          }
+        } catch (err) {}
+      }
+
+      // Local authentication check
+      if (pwInput.value === "admin123") {
+        isAdminLoggedIn = true;
+        errBox.classList.add("hidden");
+        pwInput.value = "";
+        showAdminDashboard();
+        return;
+      }
+
+      errBox.classList.remove("hidden");
+    }
+
+    function handleAdminLogout() {
+      isAdminLoggedIn = false;
+      document.getElementById("admin-auth-view").classList.remove("hidden");
+      document.getElementById("admin-dashboard-view").classList.add("hidden");
+      switchPortal('landing');
+    }
+
+    function showAdminDashboard() {
+      document.getElementById("admin-auth-view").classList.add("hidden");
+      document.getElementById("admin-dashboard-view").classList.remove("hidden");
+      updateKpis();
+      renderAdminQueue();
+      renderAdminVisits();
+      renderAdminHistory();
+      renderAdminManage();
+    }
+
+    /* Admin Sub-Tabs */
+    function switchAdminTab(tab) {
+      const tabs = ['add', 'queue', 'visits', 'history', 'manage'];
+      tabs.forEach(t => {
+        document.getElementById(`admin-tab-${t}`).classList.add("hidden");
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) {
+          btn.classList.remove("border-indigo-500", "text-white");
+          btn.classList.add("border-transparent", "text-slate-400");
+        }
+      });
+
+      document.getElementById(`admin-tab-${tab}`).classList.remove("hidden");
+      const activeBtn = document.getElementById(`tab-btn-${tab}`);
+      if (activeBtn) {
+        activeBtn.classList.remove("border-transparent", "text-slate-400");
+        activeBtn.classList.add("border-indigo-500", "text-white");
+      }
+
+      if (tab === 'queue') renderAdminQueue();
+      if (tab === 'visits') renderAdminVisits();
+      if (tab === 'history') renderAdminHistory();
+      if (tab === 'manage') renderAdminManage();
+    }
+
+    /* Location Sub-Menu Toggle */
+    function toggleRoomInput() {
+      const locSelect = document.getElementById("add-item-loc-type");
+      const roomContainer = document.getElementById("room-input-container");
+      const roomInput = document.getElementById("add-item-room-no");
+
+      if (locSelect.value.startsWith("Block")) {
+        roomContainer.classList.remove("hidden");
+        roomInput.required = true;
+      } else {
+        roomContainer.classList.add("hidden");
+        roomInput.required = false;
+        roomInput.value = "";
+      }
+    }
+
+    /* Drag and Drop & File Upload Handling */
+    function setupDropzone() {
+      const dropzone = document.getElementById("image-dropzone");
+      if (!dropzone) return;
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('dragover');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('dragover');
+        }, false);
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+          processImageFile(files[0]);
+        }
+      });
+    }
+
+    function handleImageFileSelected(input) {
+      if (input.files && input.files.length > 0) {
+        processImageFile(input.files[0]);
+      }
+    }
+
+    function processImageFile(file) {
+      if (!file.type.startsWith("image/")) {
+        alert("Please select a valid image file (PNG, JPG, WEBP).");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result;
+        document.getElementById("add-item-image-base64").value = base64Data;
+        document.getElementById("upload-preview-img").src = base64Data;
+        document.getElementById("upload-preview-container").classList.remove("hidden");
+        document.getElementById("upload-placeholder").classList.add("hidden");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeUploadedImage() {
+      document.getElementById("add-item-image-base64").value = "";
+      document.getElementById("add-item-file").value = "";
+      document.getElementById("upload-preview-img").src = "";
+      document.getElementById("upload-preview-container").classList.add("hidden");
+      document.getElementById("upload-placeholder").classList.remove("hidden");
+    }
+
+    /* Add Item Submit (Admin) */
+    async function handleAddItemSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById("add-item-name").value.trim();
+      const category = document.getElementById("add-item-category").value;
+      const desc = document.getElementById("add-item-desc").value.trim();
+      const locType = document.getElementById("add-item-loc-type").value;
+      const roomNo = document.getElementById("add-item-room-no").value.trim();
+      const dateFound = document.getElementById("add-item-date").value || new Date().toISOString().split("T")[0];
+      const datePosted = document.getElementById("add-item-date-posted").value || new Date().toISOString().split("T")[0];
+      
+      // Image base64 or default placeholder
+      let imgData = document.getElementById("add-item-image-base64").value;
+      if (!imgData) {
+        // Default category fallback images
+        if (category === "Electronics") imgData = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80";
+        else if (category === "IDs & Cards") imgData = "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80";
+        else if (category === "Books & Stationery") imgData = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80";
+        else if (category === "Bags & Bottles") imgData = "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=600&auto=format&fit=crop&q=80";
+        else if (category === "Personal Accessories") imgData = "https://images.unsplash.com/photo-1534353436294-0dbd4bdac845?w=600&auto=format&fit=crop&q=80";
+        else imgData = "https://images.unsplash.com/photo-1586769852044-692d6e3703f0?w=600&auto=format&fit=crop&q=80";
+      }
+
+      let fullLocation = locType;
+      if (locType.startsWith("Block") && roomNo) {
+        fullLocation = `${locType}, Room ${roomNo}`;
+      }
+
+      const newItem = {
+        id: inventoryList.length > 0 ? Math.max(...inventoryList.map(i => i.id)) + 1 : 101,
+        name,
+        category,
+        value_tier: category === "Electronics" ? "HIGH" : "LOW",
+        description: desc,
+        location: fullLocation,
+        image_path: imgData,
+        date_found: dateFound,
+        date_posted: datePosted,
+        status: "AVAILABLE"
+      };
+
+      if (isConnectedToCServer) {
+        try {
+          await fetch(`${API_BASE}/items`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newItem)
+          });
+          await loadAllData();
+        } catch (err) {
+          inventoryList.push(newItem);
+        }
+      } else {
+        inventoryList.push(newItem);
+        saveLocalData();
+      }
+
+      alert(`[SUCCESS] Item #${newItem.id} ("${newItem.name}") registered! Students can now inspect its photo and details.`);
+      e.target.reset();
+      removeUploadedImage();
+      toggleRoomInput();
+      updateKpis();
+      updateCategoryCounts();
+      renderAdminManage();
+      filterItems();
+      switchAdminTab('manage');
+    }
+
+    /* Category Filter Chip Click */
+    function setCategoryFilter(category) {
+      currentCategoryFilter = category;
+      const chips = [
+        { id: 'all', val: '' },
+        { id: 'electronics', val: 'Electronics' },
+        { id: 'ids', val: 'IDs & Cards' },
+        { id: 'books', val: 'Books & Stationery' },
+        { id: 'bags', val: 'Bags & Bottles' },
+        { id: 'accessories', val: 'Personal Accessories' }
+      ];
+
+      chips.forEach(c => {
+        const el = document.getElementById(`cat-chip-${c.id}`);
+        if (el) {
+          if (c.val === category) {
+            el.classList.add("active");
+          } else {
+            el.classList.remove("active");
+          }
+        }
+      });
+
+      filterItems();
+    }
+
+    function updateCategoryCounts() {
+      const getCount = (cat) => cat ? inventoryList.filter(i => i.category === cat).length : inventoryList.length;
+      document.getElementById("badge-cat-all").innerText = getCount("");
+      document.getElementById("badge-cat-electronics").innerText = getCount("Electronics");
+      document.getElementById("badge-cat-ids").innerText = getCount("IDs & Cards");
+      document.getElementById("badge-cat-books").innerText = getCount("Books & Stationery");
+      document.getElementById("badge-cat-bags").innerText = getCount("Bags & Bottles");
+      document.getElementById("badge-cat-accessories").innerText = getCount("Personal Accessories");
+    }
+
+    /* Handle Date Filter Dropdown Change */
+    function handleDateFilterChange() {
+      const filterVal = document.getElementById("student-date-filter").value;
+      const customDateInput = document.getElementById("student-custom-date");
+
+      if (filterVal === "CUSTOM") {
+        customDateInput.classList.remove("hidden");
+        if (!customDateInput.value) {
+          customDateInput.value = new Date().toISOString().split("T")[0];
+        }
+      } else {
+        customDateInput.classList.add("hidden");
+      }
+
+      filterItems();
+    }
+
+    /* Render Student Grid with Real Photos & Upload Date */
+    function renderStudentGrid(items) {
+      const grid = document.getElementById("items-grid");
+      const empty = document.getElementById("empty-state");
+
+      grid.innerHTML = "";
+      if (!items || items.length === 0) {
+        empty.classList.remove("hidden");
+        return;
+      }
+      empty.classList.add("hidden");
+
+      items.forEach(item => {
+        let statusBadge = "";
+        let claimButtonHtml = "";
+
+        // Category icon lookup
+        let catIcon = "📦";
+        if (item.category === "Electronics") catIcon = "💻";
+        else if (item.category === "IDs & Cards") catIcon = "🪪";
+        else if (item.category === "Books & Stationery") catIcon = "📚";
+        else if (item.category === "Bags & Bottles") catIcon = "🎒";
+        else if (item.category === "Personal Accessories") catIcon = "☂️";
+
+        if (item.status === "AVAILABLE") {
+          statusBadge = `<span class="status-badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Available</span>`;
+          claimButtonHtml = `
+            <button onclick="openClaimModal(${item.id})" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-all shadow-sm flex items-center justify-center space-x-1.5">
+              <span>Claim This Item</span>
+            </button>
+          `;
+        } else if (item.status === "PENDING CLAIM") {
+          statusBadge = `<span class="status-badge bg-amber-500/10 text-amber-400 border border-amber-500/20">Claim In Review</span>`;
+          claimButtonHtml = `
+            <button disabled class="w-full py-2.5 bg-slate-800 text-slate-500 rounded-xl text-xs font-medium cursor-not-allowed">
+              Verification In Progress
+            </button>
+          `;
+        } else {
+          statusBadge = `<span class="status-badge bg-slate-700/50 text-slate-400 border border-slate-700">Reunited (Claimed)</span>`;
+          claimButtonHtml = `
+            <button disabled class="w-full py-2.5 bg-slate-900 text-slate-600 rounded-xl text-xs font-medium cursor-not-allowed">
+              Archived (Claimed)
+            </button>
+          `;
+        }
+
+        // Image source or clean fallback
+        const imgSrc = item.image_path && item.image_path !== "None" ? item.image_path : "https://images.unsplash.com/photo-1586769852044-692d6e3703f0?w=600&auto=format&fit=crop&q=80";
+
+        const card = document.createElement("div");
+        card.className = "bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden flex flex-col justify-between transition-all duration-200 shadow-sm hover:shadow-md";
+        card.innerHTML = `
+          <div>
+            <!-- Image Thumbnail with Lightbox click -->
+            <div class="relative h-48 bg-slate-950 overflow-hidden cursor-pointer group" onclick="openLightboxModal(${item.id})">
+              <img 
+                src="${escapeHtml(imgSrc)}" 
+                alt="${escapeHtml(item.name)}" 
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onerror="this.src='https://images.unsplash.com/photo-1586769852044-692d6e3703f0?w=600&auto=format&fit=crop&q=80'"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+              
+              <div class="absolute top-3 left-3">
+                <span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-900/90 text-white backdrop-blur border border-slate-700/80 shadow">
+                  ${catIcon} ${escapeHtml(item.category || 'General')}
+                </span>
+              </div>
+
+              <div class="absolute top-3 right-3">
+                ${statusBadge}
+              </div>
+
+              <div class="absolute bottom-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/90 text-indigo-300 px-2.5 py-1 rounded-lg text-xs font-semibold backdrop-blur border border-indigo-500/30 flex items-center space-x-1 shadow-lg">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"/></svg>
+                <span>View Photo</span>
+              </div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="p-5">
+              <div class="flex items-center justify-between text-xs text-slate-400 mb-1.5 font-mono">
+                <span>#${item.id}</span>
+                <span class="text-indigo-400 font-sans font-medium flex items-center gap-1">
+                  📅 Uploaded: ${escapeHtml(item.date_posted || item.date_found)}
+                </span>
+              </div>
+
+              <h3 class="text-base font-bold text-white mb-1.5 leading-snug line-clamp-1">${escapeHtml(item.name)}</h3>
+              <p class="text-xs text-slate-400 line-clamp-2 mb-4 leading-relaxed">${escapeHtml(item.description)}</p>
+
+              <div class="space-y-1.5 text-xs text-slate-300 pt-3 border-t border-slate-800/80">
+                <div class="flex items-center space-x-1.5">
+                  <svg class="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  <span class="truncate">Location: <strong>${escapeHtml(item.location)}</strong></span>
+                </div>
+                <div class="flex items-center space-x-1.5 text-slate-400 text-[11px]">
+                  <svg class="w-3.5 h-3.5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span>Found on: ${escapeHtml(item.date_found)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Button -->
+          <div class="px-5 pb-5">
+            ${claimButtonHtml}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    /* Filtering Items by Keyword, Category, Location, Date, and Status */
+    function filterItems() {
+      const q = document.getElementById("student-search-input").value.toLowerCase().trim();
+      const loc = document.getElementById("student-location-filter").value;
+      const dateFilter = document.getElementById("student-date-filter").value;
+      const customDate = document.getElementById("student-custom-date").value;
+      const statusFilter = document.getElementById("student-status-filter").value;
+
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      const filtered = inventoryList.filter(item => {
+        // Keyword Search across multiple fields
+        const matchesQ = !q || 
+          item.name.toLowerCase().includes(q) || 
+          item.description.toLowerCase().includes(q) || 
+          item.location.toLowerCase().includes(q) ||
+          (item.category && item.category.toLowerCase().includes(q));
+
+        // Category Filter
+        const matchesCat = !currentCategoryFilter || item.category === currentCategoryFilter;
+
+        // Location Filter
+        const matchesLoc = !loc || item.location.includes(loc);
+
+        // Status Filter
+        let matchesStatus = true;
+        if (statusFilter === "AVAILABLE") matchesStatus = item.status === "AVAILABLE";
+        if (statusFilter === "PENDING CLAIM") matchesStatus = item.status === "PENDING CLAIM";
+
+        // Date Filter (evaluating item.date_posted, falling back to item.date_found)
+        let matchesDate = true;
+        const itemDateStr = item.date_posted || item.date_found;
+        if (itemDateStr) {
+          const itemDate = new Date(itemDateStr);
+          itemDate.setHours(0, 0, 0, 0);
+          const diffDays = Math.round((now - itemDate) / (1000 * 60 * 60 * 24));
+
+          if (dateFilter === "TODAY") {
+            matchesDate = (diffDays === 0);
+          } else if (dateFilter === "3DAYS") {
+            matchesDate = (diffDays >= 0 && diffDays <= 3);
+          } else if (dateFilter === "WEEK") {
+            matchesDate = (diffDays >= 0 && diffDays <= 7);
+          } else if (dateFilter === "MONTH") {
+            matchesDate = (diffDays >= 0 && diffDays <= 30);
+          } else if (dateFilter === "CUSTOM" && customDate) {
+            matchesDate = (itemDateStr === customDate);
+          }
+        }
+
+        return matchesQ && matchesCat && matchesLoc && matchesStatus && matchesDate;
+      });
+
+      renderStudentGrid(filtered);
+    }
+
+    /* Refresh button */
+    async function refreshData() {
+      await loadAllData();
+      filterItems();
+      updateKpis();
+      updateCategoryCounts();
+      updateLandingStats();
+    }
+
+    /* Lightbox Modal Functions */
+    function openLightboxModal(itemId) {
+      const item = inventoryList.find(i => i.id === itemId);
+      if (!item) return;
+
+      const imgSrc = item.image_path && item.image_path !== "None" ? item.image_path : "https://images.unsplash.com/photo-1586769852044-692d6e3703f0?w=600&auto=format&fit=crop&q=80";
+
+      document.getElementById("lightbox-img").src = imgSrc;
+      document.getElementById("lightbox-title").innerText = item.name;
+      document.getElementById("lightbox-subtitle").innerText = `Category: ${item.category || 'General'} | Location: ${item.location}`;
+      document.getElementById("lightbox-details").innerText = `Date Found: ${item.date_found} | Date Uploaded: ${item.date_posted || item.date_found}`;
+
+      document.getElementById("image-lightbox-modal").classList.remove("hidden");
+    }
+
+    function closeLightboxModal() {
+      document.getElementById("image-lightbox-modal").classList.add("hidden");
+      document.getElementById("lightbox-img").src = "";
+    }
+
+    /* ========================================================================
+     * ADMIN EDIT ITEM MODAL HANDLERS
+     * ======================================================================== */
+    function openEditItemModal(itemId) {
+      const item = inventoryList.find(i => i.id === itemId);
+      if (!item) return;
+
+      document.getElementById("edit-item-id").value = item.id;
+      document.getElementById("edit-item-modal-id").innerText = `Editing Item #${item.id}`;
+      document.getElementById("edit-item-name").value = item.name;
+      document.getElementById("edit-item-category").value = item.category || "Other";
+      document.getElementById("edit-item-desc").value = item.description;
+      document.getElementById("edit-item-location").value = item.location;
+      document.getElementById("edit-item-status").value = item.status || "AVAILABLE";
+      document.getElementById("edit-item-date").value = item.date_found;
+      document.getElementById("edit-item-date-posted").value = item.date_posted || item.date_found;
+      
+      document.getElementById("edit-item-image-base64").value = item.image_path || "";
+      document.getElementById("edit-preview-img").src = item.image_path || "";
+
+      document.getElementById("edit-item-modal").classList.remove("hidden");
+    }
+
+    function closeEditItemModal() {
+      document.getElementById("edit-item-modal").classList.add("hidden");
+    }
+
+    function handleEditImageSelected(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById("edit-item-image-base64").value = e.target.result;
+          document.getElementById("edit-preview-img").src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    async function handleEditItemSubmit(e) {
+      e.preventDefault();
+      const id = parseInt(document.getElementById("edit-item-id").value);
+      const item = inventoryList.find(i => i.id === id);
+      if (!item) return;
+
+      item.name = document.getElementById("edit-item-name").value.trim();
+      item.category = document.getElementById("edit-item-category").value;
+      item.description = document.getElementById("edit-item-desc").value.trim();
+      item.location = document.getElementById("edit-item-location").value.trim();
+      item.status = document.getElementById("edit-item-status").value;
+      item.date_found = document.getElementById("edit-item-date").value;
+      item.date_posted = document.getElementById("edit-item-date-posted").value;
+      
+      const newImg = document.getElementById("edit-item-image-base64").value;
+      if (newImg) item.image_path = newImg;
+
+      if (isConnectedToCServer) {
+        try {
+          await fetch(`${API_BASE}/items/edit`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item)
+          });
+        } catch(err) {}
+      } else {
+        saveLocalData();
+      }
+
+      closeEditItemModal();
+      alert(`[SUCCESS] Item #${id} has been updated successfully!`);
+      renderAdminManage();
+      filterItems();
+      updateKpis();
+      updateCategoryCounts();
+    }
+
+    /* ========================================================================
+     * ADMIN EDIT CLAIM MODAL HANDLERS
+     * ======================================================================== */
+    function openEditClaimModal(reqId) {
+      const req = claimQueue.find(q => q.request_id === reqId);
+      if (!req) return;
+
+      document.getElementById("edit-claim-req-id").value = req.request_id;
+      document.getElementById("edit-claim-modal-id").innerText = `Editing Claim Request #${req.request_id} (Item #${req.item_id})`;
+      document.getElementById("edit-claim-name").value = req.claimant.name;
+      document.getElementById("edit-claim-usn").value = req.claimant.usn;
+      document.getElementById("edit-claim-phone").value = req.claimant.phone;
+      document.getElementById("edit-claim-email").value = req.claimant.email;
+      document.getElementById("edit-claim-visit-date").value = req.visit_date || "";
+      document.getElementById("edit-claim-visit-slot").value = req.visit_slot || AVAILABLE_SLOTS[0];
+      document.getElementById("edit-claim-serial").value = req.serial_no || "";
+      document.getElementById("edit-claim-invoice").value = req.purchase_proof || "";
+      document.getElementById("edit-claim-notes").value = req.notes || "";
+
+      document.getElementById("edit-claim-modal").classList.remove("hidden");
+    }
+
+    function closeEditClaimModal() {
+      document.getElementById("edit-claim-modal").classList.add("hidden");
+    }
+
+    async function handleEditClaimSubmit(e) {
+      e.preventDefault();
+      const reqId = parseInt(document.getElementById("edit-claim-req-id").value);
+      const req = claimQueue.find(q => q.request_id === reqId);
+      if (!req) return;
+
+      req.claimant.name = document.getElementById("edit-claim-name").value.trim();
+      req.claimant.usn = document.getElementById("edit-claim-usn").value.trim();
+      req.claimant.phone = document.getElementById("edit-claim-phone").value.trim();
+      req.claimant.email = document.getElementById("edit-claim-email").value.trim();
+      req.visit_date = document.getElementById("edit-claim-visit-date").value;
+      req.visit_slot = document.getElementById("edit-claim-visit-slot").value;
+      req.serial_no = document.getElementById("edit-claim-serial").value.trim();
+      req.purchase_proof = document.getElementById("edit-claim-invoice").value.trim();
+      req.notes = document.getElementById("edit-claim-notes").value.trim();
+
+      if (isConnectedToCServer) {
+        try {
+          await fetch(`${API_BASE}/claims/edit`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(req)
+          });
+        } catch(err) {}
+      } else {
+        saveLocalData();
+      }
+
+      closeEditClaimModal();
+      alert(`[SUCCESS] Claim Request #${reqId} and appointment details updated successfully!`);
+      renderAdminQueue();
+      renderAdminVisits();
+      updateKpis();
+    }
+
+    /* Claim Modal Opening (Student) */
+    async function openClaimModal(itemId) {
+      const item = inventoryList.find(i => i.id === itemId);
+      if (!item) return;
+
+      document.getElementById("modal-item-id").value = item.id;
+      document.getElementById("modal-item-tier").value = item.value_tier || "LOW";
+      document.getElementById("modal-item-title").innerText = `#${item.id} - ${item.name}`;
+
+      const tierBadgeEl = document.getElementById("modal-item-tier-badge");
+      const tierNoticeEl = document.getElementById("modal-tier-notice");
+      const highFields = document.getElementById("high-value-fields-container");
+      const notesLabel = document.getElementById("notes-label");
+      const serialInput = document.getElementById("claim-serial-no");
+      const proofInput = document.getElementById("claim-purchase-proof");
+
+      // Category badge
+      tierBadgeEl.innerHTML = `<span class="status-badge bg-slate-800 text-slate-300 border border-slate-700">${escapeHtml(item.category || 'General')}</span>`;
+
+      if (item.category === "Electronics" || item.value_tier === "HIGH") {
+        tierNoticeEl.className = "p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 text-slate-300 text-xs leading-relaxed";
+        tierNoticeEl.innerHTML = `
+          <strong>Device Verification:</strong> For electronic belongings, please provide your serial number or ownership proof if known, and select an in-person pickup visit.
+        `;
+        highFields.classList.remove("hidden");
+        notesLabel.innerText = "Distinguishing Marks / Unlock PIN Hint *";
+      } else {
+        tierNoticeEl.className = "p-3 rounded-xl border border-slate-800 bg-slate-950 text-slate-300 text-xs leading-relaxed";
+        tierNoticeEl.innerHTML = `
+          <strong>Claim Verification:</strong> Please provide identifying features or distinguishing marks and reserve a campus visit slot for pickup.
+        `;
+        highFields.classList.add("hidden");
+        serialInput.value = "";
+        proofInput.value = "";
+        notesLabel.innerText = "Identifying Marks / Description *";
+      }
+
+      // Default visit date to tomorrow or next business day
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      document.getElementById("claim-visit-date").value = d.toISOString().split("T")[0];
+
+      // Load time slots
+      await loadVisitSlotsForDate();
+
+      document.getElementById("claim-modal").classList.remove("hidden");
+    }
+
+    function closeClaimModal() {
+      document.getElementById("claim-modal").classList.add("hidden");
+    }
+
+    /* Load visit slots and calculate real-time availability quotas */
+    async function loadVisitSlotsForDate() {
+      const selectedDate = document.getElementById("claim-visit-date").value;
+      const slotsContainer = document.getElementById("slots-container");
+      const quotaStatus = document.getElementById("slot-quota-status");
+      slotsContainer.innerHTML = "";
+
+      let slotsData = [];
+      if (isConnectedToCServer) {
+        try {
+          const res = await fetch(`${API_BASE}/slots?date=${selectedDate}`);
+          if (res.ok) slotsData = await res.json();
+        } catch (e) {}
+      }
+
+      if (slotsData.length === 0) {
+        // Calculate locally from claimQueue
+        slotsData = AVAILABLE_SLOTS.map(slot => {
+          const booked = claimQueue.filter(q => q.visit_date === selectedDate && q.visit_slot === slot).length;
+          const available = Math.max(0, SLOT_CAPACITY - booked);
+          return { slot, capacity: SLOT_CAPACITY, booked, available, is_full: available === 0 };
+        });
+      }
+
+      let firstAvailable = null;
+      slotsData.forEach((s) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.disabled = s.is_full;
+        btn.className = `slot-pill p-2 rounded-lg border text-left text-xs transition-all flex flex-col justify-between ${
+          s.is_full ? 'bg-slate-950/40 border-slate-900 opacity-40 cursor-not-allowed' : 'bg-slate-950 border-slate-800 hover:border-indigo-500'
+        }`;
+
+        let badge = `<span class="text-[10px] text-emerald-400 font-mono">Available</span>`;
+        if (s.is_full) {
+          badge = `<span class="text-[10px] text-rose-400 font-mono">Full</span>`;
+        }
+
+        btn.innerHTML = `
+          <span class="font-medium text-slate-200">${s.slot}</span>
+          ${badge}
+        `;
+
+        btn.onclick = () => {
+          document.querySelectorAll(".slot-pill").forEach(el => el.classList.remove("selected"));
+          btn.classList.add("selected");
+          document.getElementById("selected-visit-slot").value = s.slot;
+          quotaStatus.innerText = `Selected: ${s.slot}`;
+        };
+
+        if (!s.is_full && !firstAvailable) {
+          firstAvailable = btn;
+        }
+
+        slotsContainer.appendChild(btn);
+      });
+
+      if (firstAvailable) {
+        firstAvailable.click();
+      } else {
+        quotaStatus.innerText = "⚠️ All slots on this date are fully booked. Please choose another date.";
+        document.getElementById("selected-visit-slot").value = "";
+      }
+    }
+
+    function validateEmailField(input) {
+      const val = input.value.trim().toLowerCase();
+      const feedback = document.getElementById("email-feedback");
+
+      if (!val) {
+        feedback.className = "text-[11px] mt-1 hidden";
+        return false;
+      }
+
+      if ((val.endsWith(COLLEGE_DOMAIN) || val.includes(".edu") || val.includes(".ac.in")) && val.includes("@")) {
+        feedback.innerText = "✓ Valid institutional email format.";
+        feedback.className = "text-[11px] mt-1 text-emerald-400 block font-medium";
+        input.classList.remove("border-rose-500");
+        input.classList.add("border-emerald-500");
+        return true;
+      } else {
+        feedback.innerText = `✗ Institutional email required (e.g. name${COLLEGE_DOMAIN})`;
+        feedback.className = "text-[11px] mt-1 text-rose-400 block font-medium";
+        input.classList.remove("border-emerald-500");
+        input.classList.add("border-rose-500");
+        return false;
+      }
+    }
+
+    /* Submit Claim Request with Scheduled Visit */
+    async function handleClaimFormSubmit(e) {
+      e.preventDefault();
+      const itemId = parseInt(document.getElementById("modal-item-id").value);
+      const tier = document.getElementById("modal-item-tier").value;
+      const name = document.getElementById("claim-name").value.trim();
+      const usn = document.getElementById("claim-usn").value.trim();
+      const phone = document.getElementById("claim-phone").value.trim();
+      const email = document.getElementById("claim-email").value.trim();
+      const notes = document.getElementById("claim-notes").value.trim();
+      const visitDate = document.getElementById("claim-visit-date").value;
+      const visitSlot = document.getElementById("selected-visit-slot").value;
+      const serialNo = document.getElementById("claim-serial-no").value.trim();
+      const purchaseProof = document.getElementById("claim-purchase-proof").value.trim();
+
+      if (!visitSlot) {
+        alert("Please select an available campus visit time slot.");
+        return;
+      }
+
+      const reqId = claimQueue.length > 0 ? Math.max(...claimQueue.map(q => q.request_id)) + 1 : 1001;
+      const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
+
+      const targetItem = inventoryList.find(i => i.id === itemId);
+
+      const claimReq = {
+        request_id: reqId,
+        item_id: itemId,
+        claimant: {
+          name,
+          usn,
+          phone,
+          email,
+          claim_date: nowStr
+        },
+        notes,
+        request_date: nowStr,
+        visit_date: visitDate,
+        visit_slot: visitSlot,
+        serial_no: serialNo,
+        purchase_proof: purchaseProof,
+        item: targetItem ? {
+          name: targetItem.name,
+          category: targetItem.category,
+          value_tier: targetItem.value_tier,
+          location: targetItem.location
+        } : null
+      };
+
+      if (isConnectedToCServer) {
+        try {
+          const res = await fetch(`${API_BASE}/claims`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(claimReq)
+          });
+          if (!res.ok) {
+            const errData = await res.json();
+            alert("Error: " + (errData.error || "Could not process claim"));
+            return;
+          }
+          await loadAllData();
+        } catch (err) {
+          claimQueue.push(claimReq);
+          if (targetItem) targetItem.status = "PENDING CLAIM";
+        }
+      } else {
+        claimQueue.push(claimReq);
+        if (targetItem) targetItem.status = "PENDING CLAIM";
+        saveLocalData();
+      }
+
+      closeClaimModal();
+      filterItems();
+      updateKpis();
+
+      // Show the Digital Campus Visit Pass
+      openVisitPassModal(claimReq, targetItem);
+    }
+
+    /* Digital Campus Visit Pass Modal */
+    function openVisitPassModal(claimReq, item) {
+      const content = document.getElementById("visit-pass-content");
+
+      content.innerHTML = `
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span class="text-xs font-mono text-slate-400">PASS ID: #VP-${claimReq.request_id}</span>
+          <span class="status-badge bg-emerald-500/20 text-emerald-300">
+            Confirmed Pickup
+          </span>
+        </div>
+
+        <div class="space-y-1">
+          <div class="text-white font-bold text-sm">${escapeHtml(item ? item.name : 'Claimed Item')}</div>
+          <div class="text-slate-400">Category: <strong>${escapeHtml(item ? item.category : 'General')}</strong> | Location: ${escapeHtml(item ? item.location : 'Campus')}</div>
+        </div>
+
+        <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-1 font-mono text-[11px]">
+          <div><span class="text-slate-500">Claimant:</span> <strong class="text-white">${escapeHtml(claimReq.claimant.name)}</strong> (${escapeHtml(claimReq.claimant.usn)})</div>
+          <div><span class="text-slate-500">Contact:</span> ${escapeHtml(claimReq.claimant.phone)}</div>
+          <div><span class="text-slate-500">Verified Email:</span> <span class="text-indigo-400">${escapeHtml(claimReq.claimant.email)}</span></div>
+        </div>
+
+        <div class="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg space-y-1">
+          <div class="text-indigo-300 font-bold text-xs">📅 Confirmed Campus Visit Slot:</div>
+          <div class="text-white font-semibold text-sm">${escapeHtml(claimReq.visit_date)} • ${escapeHtml(claimReq.visit_slot)}</div>
+          <div class="text-[11px] text-slate-300">📍 Venue: Central Lost &amp; Found Office, Block A - Room 101</div>
+        </div>
+
+        ${claimReq.serial_no ? `
+          <div class="text-[11px] text-indigo-300 bg-indigo-500/10 p-2 rounded border border-indigo-500/20 font-mono">
+            🔑 Logged Hardware Identifier: ${escapeHtml(claimReq.serial_no)}
+          </div>
+        ` : ''}
+
+        <p class="text-[11px] text-slate-400 pt-1">
+          ℹ️ Please arrive on time with your physical college ID card. Handover takes under 3 minutes upon verification.
+        </p>
+      `;
+
+      document.getElementById("visit-pass-modal").classList.remove("hidden");
+    }
+
+    function closeVisitPassModal() {
+      document.getElementById("visit-pass-modal").classList.add("hidden");
+    }
+
+    /* Track Claim */
+    function openTrackModal() {
+      document.getElementById("track-result-box").classList.add("hidden");
+      document.getElementById("track-input-id").value = "";
+      document.getElementById("track-modal").classList.remove("hidden");
+    }
+
+    function closeTrackModal() {
+      document.getElementById("track-modal").classList.add("hidden");
+    }
+
+    function handleTrackLookup() {
+      const reqId = parseInt(document.getElementById("track-input-id").value);
+      const resBox = document.getElementById("track-result-box");
+      if (!reqId) return;
+
+      const idx = claimQueue.findIndex(q => q.request_id === reqId);
+      if (idx !== -1) {
+        const req = claimQueue[idx];
+        const item = inventoryList.find(i => i.id === req.item_id) || req.item || { name: "Item #" + req.item_id, category: "General" };
+
+        resBox.innerHTML = `
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-amber-400 font-bold">⏳ Status: Review &amp; Appointment Booked</span>
+            <span class="font-mono text-slate-400">Queue Pos: #${idx + 1}</span>
+          </div>
+          <div><strong>Item:</strong> ${escapeHtml(item.name)} (${escapeHtml(item.category)})</div>
+          <div class="p-2.5 bg-slate-900 rounded border border-slate-800 space-y-1">
+            <div class="font-semibold text-white">📅 Scheduled Office Pickup:</div>
+            <div class="text-indigo-400 font-bold">${escapeHtml(req.visit_date || 'Standard')} • ${escapeHtml(req.visit_slot || 'Regular hours')}</div>
+            <div class="text-slate-400 text-[11px]">Venue: Lost &amp; Found Central Desk, Block A - Room 101</div>
+          </div>
+          <button onclick="reopenPassFromTrack(${req.request_id})" class="w-full mt-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold">
+            View / Print Campus Visit Pass
+          </button>
+        `;
+        resBox.classList.remove("hidden");
+        return;
+      }
+
+      // Check if in history (claimed)
+      const histMatch = claimHistory.find(h => h.item_id === reqId || (h.claimant && h.claimant.usn === String(reqId)));
+      if (histMatch) {
+        resBox.innerHTML = `
+          <div class="text-emerald-400 font-bold mb-1">✓ Status: Claim Approved &amp; Item Handed Over</div>
+          <div><strong>Item:</strong> #${histMatch.item_id} - ${escapeHtml(histMatch.item_name)}</div>
+          <div><strong>Claimed By:</strong> ${escapeHtml(histMatch.claimant?.name || '')} (${escapeHtml(histMatch.claimant?.usn || '')})</div>
+          <div><strong>Handover Date:</strong> ${escapeHtml(histMatch.log_time)}</div>
+          <div class="text-slate-400 mt-1">Archived under 1-Year Retention Policy.</div>
+        `;
+        resBox.classList.remove("hidden");
+        return;
+      }
+
+      resBox.innerHTML = `
+        <div class="text-slate-400">Request ID #${reqId} was not found in pending claims. It may have already been disbursed or dismissed.</div>
+      `;
+      resBox.classList.remove("hidden");
+    }
+
+    function reopenPassFromTrack(reqId) {
+      const req = claimQueue.find(q => q.request_id === reqId);
+      if (req) {
+        const item = inventoryList.find(i => i.id === req.item_id);
+        closeTrackModal();
+        openVisitPassModal(req, item);
+      }
+    }
+
+    /* Admin Queue Render & Process with Edit Claim Button */
+    function renderAdminQueue() {
+      const list = document.getElementById("admin-queue-list");
+      list.innerHTML = "";
+
+      if (claimQueue.length === 0) {
+        list.innerHTML = `<div class="text-center py-10 text-slate-500 text-xs">No pending claim requests in the FIFO queue.</div>`;
+        return;
+      }
+
+      claimQueue.forEach((req, idx) => {
+        const item = inventoryList.find(i => i.id === req.item_id) || req.item || { name: "Unknown Item", category: "Other" };
+
+        const row = document.createElement("div");
+        row.className = "border rounded-xl p-4 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 transition-all bg-slate-950 border-slate-800";
+
+        row.innerHTML = `
+          <div class="space-y-1.5 text-xs flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">Request #${req.request_id}</span>
+              <span class="text-slate-300">Target Item: <strong class="text-white">#${req.item_id} - ${escapeHtml(item.name)}</strong></span>
+              <span class="status-badge bg-slate-800 text-slate-300">
+                ${escapeHtml(item.category || 'General')}
+              </span>
+              <span class="text-[11px] text-slate-400 font-mono">Pos #${idx + 1}</span>
+            </div>
+
+            <div class="text-slate-300 pt-0.5">
+              <strong>Claimant:</strong> ${escapeHtml(req.claimant.name)} | 
+              <strong>USN:</strong> ${escapeHtml(req.claimant.usn)} | 
+              <strong>Phone:</strong> ${escapeHtml(req.claimant.phone)} | 
+              <strong>Email:</strong> <span class="text-emerald-400">${escapeHtml(req.claimant.email)}</span>
+            </div>
+
+            <div class="flex flex-wrap gap-3 pt-1 text-[11px]">
+              <span class="text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded border border-indigo-500/20">
+                📅 Scheduled Visit: <strong>${escapeHtml(req.visit_date || 'N/A')}</strong> at <strong>${escapeHtml(req.visit_slot || 'N/A')}</strong>
+              </span>
+              ${req.serial_no ? `
+                <span class="text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20 font-mono">
+                  🔑 Identifier: <strong>${escapeHtml(req.serial_no)}</strong>
+                </span>
+              ` : ''}
+              ${req.purchase_proof ? `
+                <span class="text-slate-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                  🧾 Invoice: ${escapeHtml(req.purchase_proof)}
+                </span>
+              ` : ''}
+            </div>
+
+            <div class="text-slate-400 italic text-[11px] pt-1">
+              <strong>Notes:</strong> "${escapeHtml(req.notes)}"
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 w-full lg:w-auto">
+            <button onclick="openEditClaimModal(${req.request_id})" class="flex-1 lg:flex-initial px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold shadow-sm flex items-center justify-center space-x-1" title="Edit Claim Details &amp; Reschedule">
+              <span>✏️ Edit Claim</span>
+            </button>
+            <button onclick="openSecurityAuditModal(${req.request_id})" class="flex-1 lg:flex-initial px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm flex items-center justify-center space-x-1.5">
+              <span>Verify &amp; Handover</span>
+            </button>
+            <button onclick="processQueueDecision(${req.request_id}, 'REJECT')" class="flex-1 lg:flex-initial px-3 py-2 bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-300 rounded-lg text-xs font-semibold">
+              Dismiss
+            </button>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    /* Open Verification Checklist Modal */
+    function openSecurityAuditModal(reqId) {
+      const req = claimQueue.find(q => q.request_id === reqId);
+      if (!req) return;
+
+      const item = inventoryList.find(i => i.id === req.item_id) || req.item || { name: "Asset", category: "General" };
+
+      document.getElementById("audit-req-id").value = reqId;
+      document.getElementById("audit-remarks").value = `Verified with student ID card and photo match, item handed over`;
+
+      // Reset checkboxes
+      document.getElementById("chk-serial-match").checked = false;
+      document.getElementById("chk-invoice-match").checked = false;
+      document.getElementById("chk-id-match").checked = false;
+
+      document.getElementById("security-audit-details").innerHTML = `
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1.5">
+          <div class="font-bold text-white text-sm">#${req.item_id} - ${escapeHtml(item.name)}</div>
+          <div class="text-slate-400">Claimant: <strong class="text-white">${escapeHtml(req.claimant.name)}</strong> (${escapeHtml(req.claimant.usn)})</div>
+          <div class="text-indigo-300 font-mono">Identifier: ${escapeHtml(req.serial_no || 'Standard Verification')}</div>
+          <div class="text-slate-300">Proof Details: ${escapeHtml(req.purchase_proof || 'Student ID and notes')}</div>
+          <div class="text-slate-400 italic">Notes: "${escapeHtml(req.notes)}"</div>
+        </div>
+      `;
+
+      document.getElementById("security-audit-modal").classList.remove("hidden");
+    }
+
+    function closeSecurityAuditModal() {
+      document.getElementById("security-audit-modal").classList.add("hidden");
+    }
+
+    async function handleSecurityApprovalConfirm(e) {
+      e.preventDefault();
+      const reqId = parseInt(document.getElementById("audit-req-id").value);
+      const remarks = document.getElementById("audit-remarks").value.trim();
+
+      closeSecurityAuditModal();
+      await executeClaimApproval(reqId, remarks || "Audit Passed & Item Handed Over");
+    }
+
+    /* Process Queue Item */
+    async function processQueueDecision(reqId, decision) {
+      if (decision === 'APPROVE') {
+        const remarks = prompt("Enter Handover Remarks (e.g. Student ID verified in person):", "Verified via Student ID card and handed over");
+        if (remarks === null) return;
+        await executeClaimApproval(reqId, remarks);
+      } else {
+        if (!confirm(`Reject and dismiss Claim Request #${reqId}?`)) return;
+        await executeClaimRejection(reqId);
+      }
+    }
+
+    async function executeClaimApproval(reqId, remarks) {
+      const idx = claimQueue.findIndex(q => q.request_id === reqId);
+      if (idx === -1) return;
+
+      const req = claimQueue[idx];
+      const item = inventoryList.find(i => i.id === req.item_id);
+
+      if (item) item.status = "CLAIMED";
+      
+      // Append to 1-Year Retention History
+      const nowStr = new Date().toISOString().replace("T", " ").substring(0, 19);
+      const record = {
+        log_time: nowStr,
+        item_id: req.item_id,
+        item_name: item ? item.name : "N/A",
+        category: item ? item.category : "General",
+        value_tier: item ? item.value_tier : "LOW",
+        location: item ? item.location : "N/A",
+        claimant: req.claimant,
+        serial_no: req.serial_no || "",
+        purchase_proof: req.purchase_proof || "",
+        pickup_slot: `${req.visit_date}, ${req.visit_slot}`,
+        remarks: remarks || "Handover completed"
+      };
+      claimHistory.unshift(record);
+
+      // Dequeue from FIFO Queue
+      claimQueue.splice(idx, 1);
+
+      if (isConnectedToCServer) {
+        try {
+          await fetch(`${API_BASE}/claims/process`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ request_id: reqId, action: "APPROVE", remarks })
+          });
+          await loadAllData();
+        } catch(e) {}
+      } else {
+        saveLocalData();
+      }
+
+      alert(`[SUCCESS] Claim #${reqId} approved! Transaction archived to 1-Year Retention Database.`);
+      updateKpis();
+      renderAdminQueue();
+      renderAdminVisits();
+      renderAdminHistory();
+      renderAdminManage();
+      filterItems();
+    }
+
+    async function executeClaimRejection(reqId) {
+      const idx = claimQueue.findIndex(q => q.request_id === reqId);
+      if (idx === -1) return;
+
+      const req = claimQueue[idx];
+      const item = inventoryList.find(i => i.id === req.item_id);
+
+      claimQueue.splice(idx, 1);
+      if (item) item.status = "AVAILABLE";
+
+      if (isConnectedToCServer) {
+        try {
+          await fetch(`${API_BASE}/claims/process`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ request_id: reqId, action: "REJECT" })
+          });
+          await loadAllData();
+        } catch(e) {}
+      } else {
+        saveLocalData();
+      }
+
+      updateKpis();
+      renderAdminQueue();
+      renderAdminVisits();
+      renderAdminManage();
+      filterItems();
+    }
+
+    /* TAB 3: Render Scheduled Campus Visits */
+    function renderAdminVisits(showAll = false) {
+      const agenda = document.getElementById("admin-visits-agenda");
+      const filterDateInput = document.getElementById("admin-visits-filter-date");
+      agenda.innerHTML = "";
+
+      let targetDate = filterDateInput.value;
+      if (!targetDate && !showAll) {
+        targetDate = new Date().toISOString().split("T")[0];
+        filterDateInput.value = targetDate;
+      }
+
+      let visits = claimQueue.filter(q => q.visit_date && q.visit_slot);
+      if (!showAll && targetDate) {
+        visits = visits.filter(q => q.visit_date === targetDate);
+      }
+
+      if (visits.length === 0) {
+        agenda.innerHTML = `
+          <div class="text-center py-12 bg-slate-950/60 rounded-xl border border-dashed border-slate-800">
+            <span class="text-2xl">📅</span>
+            <h4 class="text-slate-300 font-semibold mt-1">No scheduled visits for this date</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Students can book visit slots from the student claim portal.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Group visits by slot
+      AVAILABLE_SLOTS.forEach(slot => {
+        const slotVisits = visits.filter(v => v.visit_slot === slot);
+        if (slotVisits.length === 0) return;
+
+        const slotBlock = document.createElement("div");
+        slotBlock.className = "bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3";
+        slotBlock.innerHTML = `
+          <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+              <h4 class="text-sm font-bold text-white">${slot}</h4>
+              <span class="text-[11px] text-slate-400">(${slotVisits.length} appointments booked)</span>
+            </div>
+            <span class="text-[11px] font-mono text-indigo-400">${slotVisits[0].visit_date}</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            ${slotVisits.map(v => {
+              const item = inventoryList.find(i => i.id === v.item_id) || v.item || { name: "Item #" + v.item_id, category: "General" };
+
+              return `
+                <div class="p-3 rounded-lg border bg-slate-900 border-slate-800 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-white text-xs">${escapeHtml(v.claimant.name)}</span>
+                    <button onclick="openEditClaimModal(${v.request_id})" class="text-[10px] text-indigo-300 hover:text-white bg-slate-800 px-2 py-0.5 rounded">
+                      ✏️ Reschedule / Edit
+                    </button>
+                  </div>
+                  <div class="text-[11px] text-slate-400">USN: <strong class="text-slate-200">${escapeHtml(v.claimant.usn)}</strong> | Phone: ${escapeHtml(v.claimant.phone)}</div>
+                  <div class="text-[11px] text-slate-300 truncate">Item: <strong>${escapeHtml(item.name)}</strong></div>
+                  
+                  <div class="pt-1 flex gap-2">
+                    <button onclick="openSecurityAuditModal(${v.request_id})" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[11px] font-semibold">
+                      Complete Handover
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+        agenda.appendChild(slotBlock);
+      });
+    }
+
+    /* Render 1-Year History */
+    function renderAdminHistory() {
+      const tbody = document.getElementById("admin-history-tbody");
+      tbody.innerHTML = "";
+
+      if (claimHistory.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500 font-sans">No claim disbursement records logged yet.</td></tr>`;
+        return;
+      }
+
+      claimHistory.forEach(h => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/30 transition-all text-xs";
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 text-slate-400 whitespace-nowrap">${escapeHtml(h.log_time || 'N/A')}</td>
+          <td class="py-2.5 px-3">
+            <div class="text-white font-sans font-semibold">#${h.item_id} ${escapeHtml(h.item_name)}</div>
+            <div class="text-[11px] text-slate-400">${escapeHtml(h.category || 'General')} • ${escapeHtml(h.location || 'N/A')}</div>
+          </td>
+          <td class="py-2.5 px-3">
+            <div class="text-indigo-300 font-sans font-medium">${escapeHtml(h.claimant?.name || 'N/A')}</div>
+            <div class="text-[11px] text-slate-400">${escapeHtml(h.claimant?.usn || '')} • ${escapeHtml(h.claimant?.phone || '')}</div>
+            <div class="text-[11px] text-emerald-400">${escapeHtml(h.claimant?.email || '')}</div>
+          </td>
+          <td class="py-2.5 px-3 font-mono text-[11px]">
+            ${h.serial_no ? `<div class="text-amber-300">ID: ${escapeHtml(h.serial_no)}</div>` : ''}
+            ${h.purchase_proof ? `<div class="text-slate-400">${escapeHtml(h.purchase_proof)}</div>` : ''}
+            ${!h.serial_no && !h.purchase_proof ? '<span class="text-slate-500">Student ID Verification</span>' : ''}
+          </td>
+          <td class="py-2.5 px-3 font-sans text-slate-300 whitespace-nowrap">
+            ${escapeHtml(h.pickup_slot || 'Regular Office Visit')}
+          </td>
+          <td class="py-2.5 px-3 text-slate-400 font-sans">${escapeHtml(h.remarks || 'Verified')}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* Render Admin Manage Table (With Edit Buttons & Thumbnails) */
+    function renderAdminManage() {
+      const tbody = document.getElementById("admin-manage-tbody");
+      tbody.innerHTML = "";
+
+      inventoryList.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/30 transition-all";
+        
+        const imgSrc = item.image_path && item.image_path !== "None" ? item.image_path : "https://images.unsplash.com/photo-1586769852044-692d6e3703f0?w=600&auto=format&fit=crop&q=80";
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-mono font-bold text-slate-400">#${item.id}</td>
+          <td class="py-2.5 px-3">
+            <img 
+              src="${escapeHtml(imgSrc)}" 
+              alt="thumbnail" 
+              class="w-10 h-10 object-cover rounded-lg border border-slate-800 cursor-pointer hover:opacity-80" 
+              onclick="openLightboxModal(${item.id})"
+              onerror="this.src='https://images.unsplash.com/photo-1586769852044-692d6e3703f0?w=600&auto=format&fit=crop&q=80'"
+            />
+          </td>
+          <td class="py-2.5 px-3 text-white font-medium">${escapeHtml(item.name)}</td>
+          <td class="py-2.5 px-3 text-slate-300">${escapeHtml(item.category || 'Other')}</td>
+          <td class="py-2.5 px-3 text-slate-400">${escapeHtml(item.location)}</td>
+          <td class="py-2.5 px-3 text-slate-400 font-mono text-[11px]">${escapeHtml(item.date_found)}</td>
+          <td class="py-2.5 px-3 text-indigo-400 font-mono text-[11px]">${escapeHtml(item.date_posted || item.date_found)}</td>
+          <td class="py-2.5 px-3">
+            <span class="status-badge ${item.status === 'AVAILABLE' ? 'bg-emerald-500/10 text-emerald-400' : (item.status === 'PENDING CLAIM' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-800 text-slate-500')}">
+              ${item.status}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
+            <button onclick="openEditItemModal(${item.id})" class="text-indigo-400 hover:text-indigo-300 text-xs px-2.5 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 transition-all font-semibold">
+              ✏️ Edit
+            </button>
+            <button onclick="deleteInventoryItem(${item.id})" class="text-rose-400 hover:text-rose-300 text-xs px-2 py-1 rounded hover:bg-rose-500/10 transition-all">
+              Delete
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function deleteInventoryItem(id) {
+      if (!confirm(`Permanently delete Item #${id} from inventory?`)) return;
+      const idx = inventoryList.findIndex(i => i.id === id);
+      if (idx !== -1) {
+        inventoryList.splice(idx, 1);
+        if (isConnectedToCServer) {
+          try {
+            await fetch(`${API_BASE}/items?id=${id}`, { method: "DELETE" });
+          } catch(e) {}
+        } else {
+          saveLocalData();
+        }
+        updateKpis();
+        updateCategoryCounts();
+        renderAdminManage();
+        filterItems();
+      }
+    }
+
+    /* Update KPI metrics */
+    function updateKpis() {
+      const total = inventoryList.length;
+      const availCount = inventoryList.filter(i => i.status === "AVAILABLE").length;
+      const claimedCount = inventoryList.filter(i => i.status === "CLAIMED").length;
+      const queued = claimQueue.length;
+      const visits = claimQueue.filter(q => q.visit_date && q.visit_slot).length;
+
+      const kpiTotal = document.getElementById("kpi-total-items");
+      const kpiAvail = document.getElementById("kpi-avail-items");
+      const kpiClaimed = document.getElementById("kpi-claimed-items");
+      const kpiQueue = document.getElementById("kpi-queue-count");
+      const kpiVisits = document.getElementById("kpi-visits-count");
+      const qBadge = document.getElementById("queue-badge-count");
+      const vBadge = document.getElementById("visits-badge-count");
+
+      if (kpiTotal) kpiTotal.innerText = total;
+      if (kpiAvail) kpiAvail.innerText = availCount;
+      if (kpiClaimed) kpiClaimed.innerText = claimedCount;
+      if (kpiQueue) kpiQueue.innerText = queued;
+      if (kpiVisits) kpiVisits.innerText = visits;
+      if (qBadge) qBadge.innerText = queued;
+      if (vBadge) vBadge.innerText = visits;
+    }
+
+    /* Utility */
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
